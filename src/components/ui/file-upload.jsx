@@ -143,10 +143,19 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
               {file.type.includes("image") ? (
                 <div className="row-start-1 relative w-[65%] h-fit aspect-video">
                   <Image
+                    key={file.name} // Add key prop here
                     src={
-                      "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg"
+                      progressValue === 100
+                        ? `https://assets.arkivio.my.id/${file.name}`
+                        : "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg"
                     }
                     fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    loading="lazy"
+                    onError={(e) => {
+                      // console.log("error image load");
+                      e.target.src = `https://assets.arkivio.my.id/${file.name}`;
+                    }}
                     className="object-contain w-full h-full object-center"
                     alt=""
                   />

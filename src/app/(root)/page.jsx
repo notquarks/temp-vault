@@ -19,7 +19,9 @@ export default function Home() {
         <div className="flex flex-col justify-end items-start ">
           <section className="flex flex-row items-center">
             <Sailboat className="h-6 w-6 mr-3" />
-            <h1 className="text-4xl font-bold text-center">Arkivio</h1>
+            <Link href={"/"} onClick={() => window.location.reload()}>
+              <h1 className="text-4xl font-bold text-center">Arkivio</h1>
+            </Link>
           </section>
           <p>a place to store and share files temporarily</p>
         </div>
