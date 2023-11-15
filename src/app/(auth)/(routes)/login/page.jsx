@@ -1,23 +1,46 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import signIn from "@/firebase/auth/signin";
 import { useRouter } from "next/navigation";
+import { getRedirectResult, signInWithRedirect } from "firebase/auth";
+import { auth, provider } from "@/firebase/config";
 
 function Page() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const router = useRouter();
 
+  useEffect(() => {
+    getRedirectResult(auth).then(async (userCred) => {
+      if (!userCred) {
+        return;
+      }
+
+      fetch("/api/login", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${await userCred.user.getIdToken()}`,
+        },
+      }).then((response) => {
+        if (response.status === 200) {
+          router.push("/dashboard");
+        }
+      });
+    });
+  }, []);
+
+  function signIn() {
+    signInWithRedirect(auth, provider);
+  }
+
   const handleForm = async (event) => {
     event.preventDefault();
-
     const { result, error } = await signIn(email, password);
 
     if (error) {
       return console.log(error);
     }
 
-    // else successful
     console.log(result);
     return router.push("/admin");
   };
@@ -48,7 +71,7 @@ function Page() {
               placeholder="password"
             />
           </label>
-          <button type="submit">Sign In</button>
+          <button onClick={() => signIn()}>Sign In</button>
         </form>
       </div>
     </div>

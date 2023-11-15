@@ -3,12 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Download, File, ImagePlus, Share2, Trash, Upload } from "lucide-react";
+import {
+  Download,
+  File,
+  ImagePlus,
+  Share2,
+  Trash,
+  Upload,
+  View,
+} from "lucide-react";
 import { Label } from "./label";
 import { Card } from "./card";
 import axios from "axios";
 import { set } from "zod";
 import { Progress } from "./progress";
+import Link from "next/link";
 
 const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -101,7 +110,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col grow items-center justify-between my-12 w-7/12">
+    <div className="flex-1 flex flex-col grow items-center justify-between my-12 md:w-7/12 w-full">
       {!file ? (
         <>
           <input
@@ -112,7 +121,8 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
             ref={inputRef}
             className="hidden"
             onChange={(event) => {
-              const newFiles = event.target.files;
+              const newFiles = event.target.files[0];
+              console.log(newFiles);
               handleUpload(newFiles);
             }}
           />
@@ -135,7 +145,6 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       ) : (
         <>
           <div className="flex flex-1 grow w-full flex-col m-2 gap-2">
-            {/* {Array.from(file).map((item, index) => ( */}
             <Card
               key={file.name}
               className="flex flex-col grow justify-center gap-4 items-center p-4 py-3"
@@ -153,7 +162,6 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
                     sizes="(max-width: 768px) 100vw, 33vw"
                     loading="lazy"
                     onError={(e) => {
-                      // console.log("error image load");
                       e.target.src = `https://assets.arkivio.my.id/${file.name}`;
                     }}
                     className="object-contain w-full h-full object-center"
@@ -168,6 +176,14 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
                 <Button className="h-14 w-14" variant="outline">
                   <Download className="h-4 w-4" />
                 </Button>
+                {progressValue === 100 && (
+                  <Button className="h-14 w-14" variant="outline" asChild>
+                    <Link href={`https://assets.arkivio.my.id/${file.name}`}>
+                      <View className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
+
                 <Button className="h-14 w-14" variant="outline">
                   <Share2 className="h-4 w-4" />
                 </Button>

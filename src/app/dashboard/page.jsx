@@ -1,4 +1,7 @@
 "use client";
+import React from "react";
+import { useAuthContext } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -6,14 +9,17 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { cva } from "class-variance-authority";
-import Image from "next/image";
 import Link from "next/link";
-import { FileForm } from "./components/file-form";
 import { Sailboat } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
+function Page() {
+  const { user } = useAuthContext();
+  const router = useRouter();
 
-export default function Home() {
+  React.useEffect(() => {
+    if (user == null) router.push("/");
+  }, [user, router]);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-14">
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
@@ -41,13 +47,13 @@ export default function Home() {
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/register" legacyBehavior passHref>
+                <Link href="/signout" legacyBehavior passHref>
                   <NavigationMenuLink
                     className={
                       (navigationMenuTriggerStyle(), "hover:underline")
                     }
                   >
-                    Register
+                    Logout
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
@@ -64,3 +70,5 @@ export default function Home() {
     </main>
   );
 }
+
+export default Page;
