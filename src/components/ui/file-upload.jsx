@@ -54,17 +54,16 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
 
   const handleUpload = async (file_data) => {
     if (!file_data) return;
-
+    if (file_data.size > 50 * 1024 * 1024) {
+      alert("File size exceeds 50MB limit.");
+      return;
+    }
     const body = new FormData();
     const formData = new FormData();
     body.append("file", file_data);
     formData.append("filename", file_data);
-    // Array.from(file_data).forEach((_file) => body.append("file", _file));
     const bodyfile = body.get("file");
     console.log("body:", bodyfile);
-    // Array.from(file_data).forEach((_file) =>
-    //   formData.append("filename", _file)
-    // );
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -97,14 +96,6 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     }
   };
 
-  // const onUpload = (newFiles) => {
-  //   const allFiles = [...file, ...newFiles];
-  //   setFiles(allFiles);
-  //   console.log("files:", allFiles);
-  //   onChange(allFiles);
-  //   console.log("result:", allFiles);
-  // };
-
   if (!isMounted) {
     return null;
   }
@@ -136,7 +127,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
             onDrop={handleDrop}
           >
             <Upload className="h-12 w-12 m-2" />
-            Drag and drop your file here
+            Drag and drop your file here (max 50MB).
             <Button onClick={() => inputRef.current.click()}>
               Choose File
             </Button>
