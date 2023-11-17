@@ -3,14 +3,14 @@ import { NextRequest } from "next/server";
 
 export async function middleware(request, response) {
   const session = request.cookies.get("session");
-
+  // console.log("session", session);
   //Return to /login if don't have a session
   if (!session) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   //Call the authentication endpoint
-  const responseAPI = await fetch("/api/login", {
+  const responseAPI = await fetch("http://localhost:3000/api/login", {
     headers: {
       Cookie: `session=${session?.value}`,
     },

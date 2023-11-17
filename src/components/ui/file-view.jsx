@@ -19,15 +19,11 @@ import { set } from "zod";
 import { Progress } from "./progress";
 import Link from "next/link";
 import { useAuthContext } from "@/context/AuthContext";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { firebase_db } from "@/firebase/config";
 
-const FileUpload = ({ disabled, onChange, onRemove, value }) => {
+const FileView = ({ disabled, onChange, onRemove, value }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [file, setFiles] = useState();
-  const [fileDB, setFilesDB] = useState({});
-  const [downloadUrl, setDownloadUrl] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const inputRef = useRef();
   const { user } = useAuthContext();
@@ -58,19 +54,6 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     console.log("handle drop: ", newFiles);
   };
 
-  const readDB = async (filename) => {
-    console.log(filename);
-    const filesRef = query(
-      collection(firebase_db, "files"),
-      where("fileName", "==", filename),
-      where("ownerUid", "==", user.uid)
-    );
-    const filesSnapshot = await getDocs(filesRef);
-    const files = filesSnapshot.docs.map((file) => file.data());
-    console.log("files read:", files);
-    setDownloadUrl(files[0].downloadUrl);
-    return JSON.stringify(files[0]);
-  };
   const handleUpload = async (file_data) => {
     if (!file_data) return;
     if (file_data.size > 50 * 1024 * 1024) {
@@ -101,8 +84,6 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       await Promise.all(
         urls.map(async (url, index) => {
           const bodyForm = body.get("file");
-          const fetchDB = await readDB(file_data.name);
-          setFilesDB(fetchDB);
           setFiles(file_data);
           const bodyBuffer = await bodyForm.arrayBuffer();
           await axios.put(url.signedUrl, bodyBuffer, {
@@ -125,17 +106,19 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   };
 
   const handleDelete = async () => {
+    // if (!file_data) return;
     const formData = new FormData();
-    const parseFileDB = JSON.parse(fileDB);
-    console.log("fileDB:", parseFileDB);
+    // body.append("file", file_data);
+
     formData.append(
       "filename",
       JSON.stringify({
-        fileId: parseFileDB.fileId,
-        fileName: parseFileDB.fileName,
+        fileId: data.fileId,
+        fileName: data.fileName,
       })
     );
-
+    const bodyfile = body.get("file");
+    console.log("body:", bodyfile);
     try {
       const response = await fetch("/api/delete", {
         method: "POST",
@@ -199,14 +182,14 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
                     key={file.name} // Add key prop here
                     src={
                       progressValue === 100
-                        ? `${downloadUrl}`
+                        ? `https://assets.arkivio.my.id/${file.name}`
                         : "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg"
                     }
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"
                     loading="lazy"
                     onError={(e) => {
-                      e.target.src = `${downloadUrl}`;
+                      e.target.src = `https://assets.arkivio.my.id/${file.name}`;
                     }}
                     className="object-contain w-full h-full object-center"
                     alt=""
@@ -222,7 +205,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
                 </Button>
                 {progressValue === 100 && (
                   <Button className="h-14 w-14" variant="outline" asChild>
-                    <Link href={`${downloadUrl}`}>
+                    <Link href={`https://assets.arkivio.my.id/${file.name}`}>
                       <View className="h-4 w-4" />
                     </Link>
                   </Button>
@@ -234,10 +217,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
                 <Button
                   className="h-14 w-14"
                   variant="outline"
-                  onClick={() => {
-                    handleDelete();
-                    window.location.reload();
-                  }}
+                  onClick={handleDelete}
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
@@ -261,4 +241,4 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   );
 };
 
-export default FileUpload;
+export default FileView;

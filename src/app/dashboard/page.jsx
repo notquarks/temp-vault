@@ -22,7 +22,9 @@ function Page() {
   const [files, setFiles] = useState([]);
 
   useEffect(() => {
-    if (user == null) router.push("/");
+    if (user == null) {
+      router.push("/");
+    }
     const fetchData = async () => {
       const result = await getAllFiles();
       console.log(result);
@@ -50,17 +52,12 @@ function Page() {
     }
   }
 
-  useEffect(() => {
-    if (user == null) router.push("/");
-    getAllFiles();
-  }, [user, router]);
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-14">
       <NavBar />
       <div className="flex flex-col justify-center items-center w-full grow">
         <div className="flex-1 flex flex-col h-full grow items-center gap-2 my-6 md:w-7/12 w-full">
-          {files.length > 0 ? (
+          {Array.from(files).length > 0 ? (
             files.map((file, index) => <FileCard data={file} key={index} />)
           ) : (
             <>

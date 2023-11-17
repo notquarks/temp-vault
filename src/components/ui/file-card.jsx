@@ -29,6 +29,51 @@ const FileCard = ({ data }) => {
     setIsMounted(true);
   }, []);
 
+  // const deleteFile = async () => {
+  //   const fileData = await axios.get(data.downloadUrl, {
+  //     responseType: "blob",
+  //   });
+  //   handleDelete(fileData);
+  // };
+
+  const handleDelete = async () => {
+    // if (!file_data) return;
+    const body = new FormData();
+    const formData = new FormData();
+    // body.append("file", file_data);
+
+    formData.append(
+      "filename",
+      JSON.stringify({
+        fileId: data.fileId,
+        fileName: data.fileId,
+      })
+    );
+    const bodyfile = body.get("file");
+    console.log("body:", bodyfile);
+    try {
+      const response = await fetch("/api/delete", {
+        method: "POST",
+        body: formData,
+      });
+      const { urls } = await response.json();
+      console.log("urls:", urls);
+
+      // await Promise.all(
+      //   urls.map(async (url, index) => {
+      //     const bodyForm = body.get("file");
+      //     console.log("bodyForm:", bodyForm);
+      //     setFiles(file_data);
+      //     const bodyBuffer = await bodyForm.arrayBuffer();
+      //     await axios.put(url.signedUrl, bodyBuffer, {});
+      //   })
+      // );
+      console.log(file_data);
+    } catch (error) {
+      console.error("Something went wrong, check your console.");
+    }
+  };
+
   if (!isMounted) {
     return null;
   }
@@ -60,7 +105,14 @@ const FileCard = ({ data }) => {
             <Button size="icon" variant="outline">
               <Share2 className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="outline">
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => {
+                handleDelete();
+                window.location.reload();
+              }}
+            >
               <Trash className="h-4 w-4" />
             </Button>
           </div>
