@@ -30,54 +30,83 @@ export default function NavBar() {
       router.push("/");
     }
   }
-  console.log("user ", user);
+  // console.log("user ", user);
   return (
-    <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-      <div className="flex flex-col justify-end items-start ">
-        <section className="flex flex-row items-center">
-          <Sailboat className="h-6 w-6 mr-3" />
-          <Link href={"/"} onClick={() => window.location.reload()}>
-            <h1 className="text-4xl font-bold text-center">Arkivio</h1>
-          </Link>
-        </section>
-        <p>a place to store and share files temporarily</p>
+    <div className="flex flex-col z-10 max-w-5xl w-full gap-6 font-mono text-sm lg:flex">
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
+        <div className="flex flex-col justify-end items-start ">
+          <section className="flex flex-row items-center">
+            <Sailboat className="h-6 w-6 mr-3" />
+            <Link href={"/"} onClick={() => window.location.reload()}>
+              <h1 className="text-4xl font-bold text-center">Arkivio</h1>
+            </Link>
+          </section>
+          <p>a place to store and share files temporarily</p>
+        </div>
+        <div className="flex items-center justify-between">
+          <NavigationMenu>
+            <NavigationMenuList className="gap-6">
+              <NavigationMenuItem>
+                {!user ? (
+                  <Link href="/login" legacyBehavior passHref>
+                    <NavigationMenuLink
+                      className={
+                        (navigationMenuTriggerStyle(), "hover:underline")
+                      }
+                    >
+                      Login
+                    </NavigationMenuLink>
+                  </Link>
+                ) : (
+                  <section className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={user.photoURL} />
+                      <AvatarFallback>N</AvatarFallback>
+                    </Avatar>
+                    <p>{user.displayName}</p>
+                  </section>
+                )}
+              </NavigationMenuItem>
+              {user && (
+                <NavigationMenuItem>
+                  <Button
+                    onClick={signOutUser}
+                    variant="link"
+                    className="text-foreground"
+                  >
+                    Logout
+                  </Button>
+                </NavigationMenuItem>
+              )}
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
       </div>
-      <div className="flex items-center justify-between">
+      {user && (
         <NavigationMenu>
           <NavigationMenuList className="gap-6">
             <NavigationMenuItem>
-              {!user ? (
-                <Link href="/login" legacyBehavior passHref>
-                  <NavigationMenuLink
-                    className={
-                      (navigationMenuTriggerStyle(), "hover:underline")
-                    }
-                  >
-                    Login
-                  </NavigationMenuLink>
-                </Link>
-              ) : (
-                <section className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={user.photoURL} />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <p>{user.displayName}</p>
-                </section>
-              )}
+              <Link href="/" legacyBehavior passHref>
+                <NavigationMenuLink
+                  className={(navigationMenuTriggerStyle(), "hover:underline")}
+                >
+                  Upload
+                </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
+
             <NavigationMenuItem>
-              <Button
-                onClick={signOutUser}
-                variant="link"
-                className="text-foreground"
-              >
-                Logout
-              </Button>
+              <Link href="/dashboard" legacyBehavior passHref>
+                <NavigationMenuLink
+                  className={(navigationMenuTriggerStyle(), "hover:underline")}
+                >
+                  Files
+                </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-      </div>
+      )}
     </div>
   );
 }

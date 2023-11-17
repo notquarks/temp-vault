@@ -36,17 +36,6 @@ function Page() {
     signInWithRedirect(auth, provider);
   }
 
-  const handleForm = async (event) => {
-    event.preventDefault();
-    const { result, error } = await signIn(email, password);
-
-    if (error) {
-      return console.log(error);
-    }
-
-    console.log(result);
-    return router.push("/admin");
-  };
   return (
     <main className="flex min-h-screen w-full justify-center items-center">
       <div className="flex flex-col gap-6">

@@ -18,6 +18,7 @@ import axios from "axios";
 import { set } from "zod";
 import { Progress } from "./progress";
 import Link from "next/link";
+import { useAuthContext } from "@/context/AuthContext";
 
 const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -25,6 +26,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [file, setFiles] = useState();
   const [progressValue, setProgressValue] = useState(0);
   const inputRef = useRef();
+  const { user } = useAuthContext();
 
   useEffect(() => {
     setIsMounted(true);
@@ -61,6 +63,13 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     const body = new FormData();
     const formData = new FormData();
     body.append("file", file_data);
+    if (user) {
+      console.log("user fu:", user);
+      formData.append("user", user.uid);
+    } else {
+      console.log("user anonymous");
+      formData.append("user", "anonymous");
+    }
     formData.append("filename", file_data);
     const bodyfile = body.get("file");
     console.log("body:", bodyfile);
@@ -101,7 +110,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col grow items-center justify-between my-12 md:w-7/12 w-full">
+    <div className="flex-1 flex flex-col grow items-center justify-between my-6 md:w-7/12 w-full">
       {!file ? (
         <>
           <input
