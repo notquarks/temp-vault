@@ -9,7 +9,6 @@ import {
 import { cva } from "class-variance-authority";
 import Image from "next/image";
 import Link from "next/link";
-import { FileForm } from "./components/file-form";
 import { Sailboat } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
 import NavBar from "@/components/NavBar";
