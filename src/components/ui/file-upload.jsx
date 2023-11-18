@@ -95,7 +95,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
         method: "POST",
         body: formData,
         headers: {
-          ...formData.getHeaders(),
+          "Content-Type": "multipart/form-data",
         },
       });
       const { urls } = await response.json();
