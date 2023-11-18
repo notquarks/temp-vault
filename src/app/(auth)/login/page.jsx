@@ -19,7 +19,8 @@ function Page() {
         return;
       }
 
-      fetch("/api/login", {
+      fetch("http://localhost:3000/api/login", {
+        method: "POST",
         method: "POST",
         headers: {
           Authorization: `Bearer ${await userCred.user.getIdToken()}`,
@@ -28,9 +29,10 @@ function Page() {
         if (response.status === 200) {
           router.push("/dashboard");
         }
+        console.log("login api res:", response);
       });
     });
-  }, [router]);
+  }, []);
 
   function signIn() {
     signInWithRedirect(auth, provider);

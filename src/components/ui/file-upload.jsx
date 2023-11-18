@@ -63,7 +63,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     const filesRef = query(
       collection(firebase_db, "files"),
       where("fileName", "==", filename),
-      where("ownerUid", "==", user.uid)
+      where("ownerUid", "==", user?.uid || "anonymous")
     );
     const filesSnapshot = await getDocs(filesRef);
     const files = filesSnapshot.docs.map((file) => file.data());

@@ -46,8 +46,9 @@ export async function GET(request) {
   const decodedClaims = await auth().verifySessionCookie(session, true);
 
   if (!decodedClaims) {
+    console.log("decodededClaims:", decodedClaims);
     return NextResponse.json({ isLogged: false }, { status: 401 });
   }
-
+  console.log("decodededClaims:", decodedClaims);
   return NextResponse.json({ isLogged: true }, { status: 200 });
 }
