@@ -103,6 +103,10 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
         method: "POST",
         body: formData,
       });
+      if (response.status === 409) {
+        alert("File already exists.");
+        return;
+      }
       const { urls } = await response.json();
       console.log("urls:", urls);
 

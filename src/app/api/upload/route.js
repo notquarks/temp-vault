@@ -18,9 +18,25 @@ export async function POST(request) {
   const user = formData.get("user");
   console.log(files);
   console.log("user:", user);
+
   const filename = files[0].name.replace(/\s+/g, "-");
+  if (user) {
+    const filesRef = query(
+      collection(firebase_db, "files"),
+      where("fileName", "==", filename),
+      where("ownerUid", "==", user)
+    );
+    const filesSnapshot = await getDocs(filesRef);
+    const isDuplicate = filesSnapshot.docs.map((dup) => dup.data());
+    if (isDuplicate.length > 0) {
+      return new NextResponse("File already exists!", { status: 409 });
+    }
+    console.log("isDup read:", isDuplicate);
+  }
+
   try {
     console.log(chalk.yellow(`Generating an upload URL!`));
+
     const signedUrls = await Promise.all(
       files.map(async (file) => {
         // const Body = await file.arrayBuffer();
