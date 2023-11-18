@@ -28,10 +28,9 @@ function Page() {
         if (response.status === 200) {
           router.push("/dashboard");
         }
-        router.push("/dashboard");
       });
     });
-  }, []);
+  }, [router]);
 
   function signIn() {
     signInWithRedirect(auth, provider);
