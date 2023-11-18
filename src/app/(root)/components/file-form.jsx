@@ -108,7 +108,7 @@ export const FileForm = ({ initialData, categories, materials }) => {
                   disabled={loading}
                   onChange={(filedata) => {
                     field.onChange(filedata);
-                    console.log("form pass: ", filedata);
+                    // console.log("form pass: ", filedata);
                   }}
                   onRemove={() => field.onChange([])}
                 />

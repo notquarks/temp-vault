@@ -10,7 +10,7 @@ import React from "react";
 export default function Actions({ data }) {
   const { user } = useAuthContext();
   const route = useRouter();
-  console.log("data:", data);
+  // console.log("data:", data);
 
   async function copyContent(e) {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -49,7 +49,7 @@ export default function Actions({ data }) {
         method: "POST",
         body: formData,
       });
-      console.log(file_data);
+      // console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your console.");
     }

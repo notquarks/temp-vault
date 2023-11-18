@@ -25,7 +25,7 @@ function Page() {
     if (user == null) {
       router.push("/");
     }
-    console.log("user: ", user);
+    // console.log("user: ", user);
     const fetchData = async () => {
       try {
         const response = await fetch("/api/files", {
@@ -37,7 +37,7 @@ function Page() {
 
         if (response.status === 200) {
           const data = await response.json(); // Read the response data
-          console.log(data);
+          // console.log(data);
           setFiles(data);
         }
       } catch (error) {

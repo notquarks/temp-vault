@@ -53,14 +53,14 @@ const FileCard = ({ data }) => {
       })
     );
     const bodyfile = body.get("file");
-    console.log("body:", bodyfile);
+    // console.log("body:", bodyfile);
     try {
       const response = await fetch("/api/delete", {
         method: "POST",
         body: formData,
       });
       const { urls } = await response.json();
-      console.log("urls:", urls);
+      // console.log("urls:", urls);
 
       // await Promise.all(
       //   urls.map(async (url, index) => {
@@ -71,7 +71,7 @@ const FileCard = ({ data }) => {
       //     await axios.put(url.signedUrl, bodyBuffer, {});
       //   })
       // );
-      console.log(file_data);
+      // console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your console.");
     }

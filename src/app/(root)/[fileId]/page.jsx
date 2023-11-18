@@ -14,7 +14,7 @@ import getDocument from "@/firebase/firestore/readData";
 
 export default function FilePage({ params }) {
   const fileId = params.fileId;
-  console.log("fileId: ", fileId);
+  // console.log("fileId: ", fileId);
   const { user } = useAuthContext();
   const router = useRouter();
   const [file, setFile] = useState();
@@ -25,7 +25,7 @@ export default function FilePage({ params }) {
         const { result, error } = await getDocument("files", fileId);
         const fileData = result.data();
         setFile(fileData);
-        console.log("files read:", fileData);
+        // console.log("files read:", fileData);
       } catch (error) {
         console.log(error);
       }

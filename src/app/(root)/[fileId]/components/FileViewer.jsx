@@ -8,7 +8,7 @@ import OtherFileView from "./OtherFileView";
 
 export default function FileViewer({ data }) {
   function getFileType(filedata) {
-    console.log("filedata: ", filedata);
+    // console.log("filedata: ", filedata);
     if (filedata.fileFormat.includes("image")) {
       return <ImageView data={filedata} />;
     } else if (filedata.fileFormat.includes("audio")) {
