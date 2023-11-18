@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useAuthContext } from "@/context/AuthContext";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { firebase_db } from "@/firebase/config";
+import Actions from "@/app/(root)/components/actions";
 
 const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -55,11 +56,11 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     setIsDragActive(false);
     const newFiles = event.dataTransfer.files[0];
     await handleUpload(newFiles);
-    console.log("handle drop: ", newFiles);
+    // // console.log("handle drop: ", newFiles);
   };
 
   const readDB = async (filename) => {
-    console.log(filename);
+    // console.log(filename);
     const filesRef = query(
       collection(firebase_db, "files"),
       where("fileName", "==", filename),
@@ -67,7 +68,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     );
     const filesSnapshot = await getDocs(filesRef);
     const files = filesSnapshot.docs.map((file) => file.data());
-    console.log("files read:", files);
+    // console.log("files read:", files);
     setDownloadUrl(files[0].downloadUrl);
     return JSON.stringify(files[0]);
   };
@@ -83,10 +84,10 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     const formData = new FormData();
     body.append("file", file_data);
     if (user) {
-      console.log("user fu:", user);
+      // console.log("user fu:", user);
       formData.append("user", user.uid);
     } else {
-      console.log("user anonymous");
+      // console.log("user anonymous");
       formData.append("user", "anonymous");
     }
     formData.append(
@@ -97,7 +98,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       })
     );
     const bodyfile = body.get("file");
-    console.log("body:", bodyfile);
+    // console.log("body:", bodyfile);
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -108,7 +109,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
         return;
       }
       const { urls } = await response.json();
-      console.log("urls:", urls);
+      // console.log("urls:", urls);
 
       await Promise.all(
         urls.map(async (url, index) => {
@@ -122,7 +123,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
               "Content-Type": url.fileType,
             },
             onUploadProgress: (progressEvent) => {
-              console.log("progress", progressEvent);
+              // console.log("progress", progressEvent);
               setProgressValue(
                 Math.round((progressEvent.loaded * 100) / progressEvent.total)
               );
@@ -130,16 +131,16 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
           });
         })
       );
-      console.log(file_data);
+      // console.log(file_data);
     } catch (error) {
-      console.error("Something went wrong, check your console.");
+      console.error("Something went wrong, check your // console.");
     }
   };
 
   const handleDelete = async () => {
     const formData = new FormData();
     const parseFileDB = JSON.parse(fileDB);
-    console.log("fileDB:", parseFileDB);
+    // console.log("fileDB:", parseFileDB);
     formData.append(
       "filename",
       JSON.stringify({
@@ -153,11 +154,11 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
         method: "POST",
         body: formData,
       });
-      console.log("urls:", urls);
+      // console.log("urls:", urls);
 
-      console.log(file_data);
+      // console.log(file_data);
     } catch (error) {
-      console.error("Something went wrong, check your console.");
+      console.error("Something went wrong, check your // console.");
     }
   };
 
@@ -178,7 +179,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
             className="hidden"
             onChange={(event) => {
               const newFiles = event.target.files[0];
-              console.log(newFiles);
+              // console.log(newFiles);
               handleUpload(newFiles);
             }}
           />
@@ -229,30 +230,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
               )}
               <Progress value={progressValue} className="w-[60%]" />
               <div className="row-start-6 flex gap-2 justify-end">
-                <Button className="h-14 w-14" variant="outline">
-                  <Download className="h-4 w-4" />
-                </Button>
-                {progressValue === 100 && (
-                  <Button className="h-14 w-14" variant="outline" asChild>
-                    <Link href={`${downloadUrl}`}>
-                      <View className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                )}
-
-                <Button className="h-14 w-14" variant="outline">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  className="h-14 w-14"
-                  variant="outline"
-                  onClick={() => {
-                    handleDelete();
-                    window.location.reload();
-                  }}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+                <Actions data={JSON.parse(fileDB)} />
               </div>
             </Card>
             <Card className="flex flex-col justify-center items-center py-3">

@@ -18,10 +18,13 @@ import axios from "axios";
 import { set } from "zod";
 import { Progress } from "./progress";
 import Link from "next/link";
+import Actions from "@/app/(root)/components/actions";
+import { useRouter } from "next/navigation";
 
 const FileCard = ({ data }) => {
   const [isMounted, setIsMounted] = useState(false);
   // const [file, setFiles] = useState();
+  const router = useRouter();
   const [progressValue, setProgressValue] = useState(0);
   const inputRef = useRef();
 
@@ -83,7 +86,9 @@ const FileCard = ({ data }) => {
       <Card
         className={`grid grid-flow-col grid-cols-6 w-full text-center items-center justify-between gap-3 py-3 hover:bg-input hover:cursor-pointer
             `}
-        onClick={() => {}}
+        onClick={() => {
+          router.push(`/${data.fileId}`);
+        }}
       >
         <div className="col-start-1 col-span-3 justify-items-center items-center">
           <div className="flex justify-items-center items-center gap-2">
@@ -96,25 +101,7 @@ const FileCard = ({ data }) => {
         </div>
         <div className="col-start-5 col-span-2 justify-items-center items-center">
           <div className="flex flex-row gap-2 px-4 justify-end">
-            <Button size="icon" variant="outline">
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="outline">
-              <View className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="outline">
-              <Share2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => {
-                handleDelete();
-                window.location.reload();
-              }}
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
+            <Actions data={data} />
           </div>
         </div>
       </Card>

@@ -51,7 +51,7 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
     setIsDragActive(false);
     const newFiles = event.dataTransfer.files[0];
     await handleUpload(newFiles);
-    console.log("handle drop: ", newFiles);
+    //console.log("handle drop: ", newFiles);
   };
 
   const handleUpload = async (file_data) => {
@@ -64,22 +64,22 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
     const formData = new FormData();
     body.append("file", file_data);
     if (user) {
-      console.log("user fu:", user);
+      //console.log("user fu:", user);
       formData.append("user", user.uid);
     } else {
-      console.log("user anonymous");
+      //console.log("user anonymous");
       formData.append("user", "anonymous");
     }
     formData.append("filename", file_data);
     const bodyfile = body.get("file");
-    console.log("body:", bodyfile);
+    //console.log("body:", bodyfile);
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
       const { urls } = await response.json();
-      console.log("urls:", urls);
+      //console.log("urls:", urls);
 
       await Promise.all(
         urls.map(async (url, index) => {
@@ -91,7 +91,7 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
               "Content-Type": url.fileType,
             },
             onUploadProgress: (progressEvent) => {
-              console.log("progress", progressEvent);
+              //console.log("progress", progressEvent);
               setProgressValue(
                 Math.round((progressEvent.loaded * 100) / progressEvent.total)
               );
@@ -99,7 +99,7 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
           });
         })
       );
-      console.log(file_data);
+      //console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your console.");
     }
@@ -118,15 +118,15 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
       })
     );
     const bodyfile = body.get("file");
-    console.log("body:", bodyfile);
+    //console.log("body:", bodyfile);
     try {
       const response = await fetch("/api/delete", {
         method: "POST",
         body: formData,
       });
-      console.log("urls:", urls);
+      //console.log("urls:", urls);
 
-      console.log(file_data);
+      //console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your console.");
     }
@@ -149,7 +149,7 @@ const FileView = ({ disabled, onChange, onRemove, value }) => {
             className="hidden"
             onChange={(event) => {
               const newFiles = event.target.files[0];
-              console.log(newFiles);
+              //console.log(newFiles);
               handleUpload(newFiles);
             }}
           />
