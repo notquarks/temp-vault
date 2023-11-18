@@ -59,11 +59,10 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   };
 
   const readDB = async (filename) => {
-    const fileName = filename.replace(/\s+/g, "-");
-    console.log(fileName);
+    console.log(filename);
     const filesRef = query(
       collection(firebase_db, "files"),
-      where("fileName", "==", fileName),
+      where("fileName", "==", filename),
       where("ownerUid", "==", user?.uid || "anonymous")
     );
     const filesSnapshot = await getDocs(filesRef);
@@ -72,12 +71,14 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     setDownloadUrl(files[0].downloadUrl);
     return JSON.stringify(files[0]);
   };
+
   const handleUpload = async (file_data) => {
     if (!file_data) return;
     if (file_data.size > 50 * 1024 * 1024) {
       alert("File size exceeds 50MB limit.");
       return;
     }
+    const fileName = file_data.name.replace(/\s+/g, "-");
     const body = new FormData();
     const formData = new FormData();
     body.append("file", file_data);
@@ -108,7 +109,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       await Promise.all(
         urls.map(async (url, index) => {
           const bodyForm = body.get("file");
-          const fetchDB = await readDB(file_data.name);
+          const fetchDB = await readDB(fileName);
           setFilesDB(fetchDB);
           setFiles(file_data);
           const bodyBuffer = await bodyForm.arrayBuffer();
