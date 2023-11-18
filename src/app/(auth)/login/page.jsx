@@ -19,7 +19,7 @@ function Page() {
         return;
       }
 
-      fetch("http://localhost:3000/api/login", {
+      fetch("/api/login", {
         method: "POST",
         method: "POST",
         headers: {
