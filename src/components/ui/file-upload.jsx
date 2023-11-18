@@ -94,6 +94,9 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
+        headers: {
+          ...formData.getHeaders(),
+        },
       });
       const { urls } = await response.json();
       console.log("urls:", urls);
