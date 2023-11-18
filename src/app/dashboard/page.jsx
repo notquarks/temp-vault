@@ -27,31 +27,27 @@ function Page() {
     }
     console.log("user: ", user);
     const fetchData = async () => {
-      const result = await getAllFiles();
-      console.log(result);
-      setFiles(result);
+      try {
+        const response = await fetch("/api/files", {
+          method: "GET",
+          headers: {
+            Authorization: `UserID ${user.uid}`,
+          },
+        });
+
+        if (response.status === 200) {
+          const data = await response.json(); // Read the response data
+          console.log(data);
+          setFiles(data);
+        }
+      } catch (error) {
+        console.error("Error fetching files:", error);
+      }
     };
     fetchData();
   }, [user, router]);
 
-  async function getAllFiles() {
-    try {
-      const response = await fetch("/api/files", {
-        method: "GET",
-        headers: {
-          Authorization: `UserID ${user.uid}`,
-        },
-      });
-
-      if (response.status === 200) {
-        const data = await response.json(); // Read the response data
-        // console.log(data);
-        return data;
-      }
-    } catch (error) {
-      console.error("Error fetching files:", error);
-    }
-  }
+  async function getAllFiles() {}
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-14">
