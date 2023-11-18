@@ -25,6 +25,7 @@ function Page() {
     if (user == null) {
       router.push("/");
     }
+    console.log("user: ", user);
     const fetchData = async () => {
       const result = await getAllFiles();
       console.log(result);
