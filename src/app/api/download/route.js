@@ -1,6 +1,7 @@
+import { r2 } from "@/lib/r2";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import chalk from "chalk";
-import { r2 } from "@/lib/r2";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -16,12 +17,12 @@ export async function GET() {
     if (!pdf) {
       throw new Error("pdf not found.");
     }
-
-    return new Response(pdf.Body?.transformToWebStream(), {
-      headers: {
-        "Content-Type": "application/pdf",
-      },
-    });
+    return NextResponse.json({ pdf });
+    // return new Response(pdf.Body?.transformToWebStream(), {
+    //   headers: {
+    //     "Content-Type": "application/pdf",
+    //   },
+    // });
   } catch (err) {
     console.log("error", err);
   }

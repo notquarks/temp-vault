@@ -60,7 +60,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
 
   const readDB = async (filename) => {
     const fileName = filename.replace(/\s+/g, "-");
-    console.log(filename);
+    console.log(fileName);
     const filesRef = query(
       collection(firebase_db, "files"),
       where("fileName", "==", fileName),
