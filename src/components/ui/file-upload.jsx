@@ -91,9 +91,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
     const bodyfile = body.get("file");
     console.log("body:", bodyfile);
     try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const response = await axios.post("/api/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
