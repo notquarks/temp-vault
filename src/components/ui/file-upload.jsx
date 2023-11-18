@@ -87,14 +87,19 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
       console.log("user anonymous");
       formData.append("user", "anonymous");
     }
-    formData.append("filename", file_data);
+    formData.append(
+      "filename",
+      JSON.stringify({
+        name: file_data.name,
+        type: file_data.type,
+      })
+    );
     const bodyfile = body.get("file");
     console.log("body:", bodyfile);
     try {
-      const response = await axios.post("/api/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
       const { urls } = await response.json();
       console.log("urls:", urls);

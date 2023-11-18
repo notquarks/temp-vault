@@ -14,20 +14,11 @@ export async function POST(request) {
   const formData = await request.formData();
   const shortUuid = shortUUID();
   console.log(formData);
-  const files = formData.getAll("filename");
+  const files = [JSON.parse(formData.getAll("filename"))];
   const user = formData.get("user");
   console.log(files);
   console.log("user:", user);
   const filename = files[0].name.replace(/\s+/g, "-");
-  // const filesRef = query(
-  //   collection(firebase_db, "files"),
-  //   where("fileName", "==", filename)
-  // );
-  // const filesSnapshot = await getDocs(filesRef);
-  // const getDuplicate = filesSnapshot.docs.map((file) => file.data());
-  // if (getDuplicate.length > 0) {
-  //   return new NextResponse(`File already exist`, { status: 400 });
-  // }
   try {
     console.log(chalk.yellow(`Generating an upload URL!`));
     const signedUrls = await Promise.all(
@@ -70,10 +61,3 @@ export async function POST(request) {
     return new NextResponse(`Internal error : ${err}`, { status: 500 });
   }
 }
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "60mb", // Set desired value here
-    },
-  },
-};
