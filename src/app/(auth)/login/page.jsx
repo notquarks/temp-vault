@@ -47,7 +47,10 @@ function Page() {
               <h1 className="text-4xl font-bold text-center">Arkivio</h1>
             </Link>
           </section>
-          <p>a place to store and share files temporarily</p>
+          <p>
+            Anonymously Store or Share Your Files - Enjoy 30-Day Temporary File
+            Storage
+          </p>
         </div>
         <Button onClick={() => signIn()}>Sign In with Google</Button>
       </div>
