@@ -1,42 +1,40 @@
 import { firebase_db } from "@/firebase/config";
-import { r2 } from "@/lib/r2";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
-import chalk from "chalk";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { NextResponse } from "next/server";
 
 export async function GET(req, { params }) {
-  const fileId = params.fileId;
-  const filesRef = query(
-    collection(firebase_db, "files"),
-    where("fileId", "==", fileId)
-  );
-  const filesSnapshot = await getDocs(filesRef);
-  const fileData = filesSnapshot.docs.map((file) => file.data());
-  console.log("fileData:", fileData);
+  const { fileId } = params;
+
   try {
-    console.log(chalk.yellow(`Retrieving pdf from R2!`));
-    const fileName = fileData[0].fileName;
-    const DUMMY_URL = `https://assets.arkivio.my.id/${
-      fileId + fileData[0].extension
-    }`;
+    // Query Firestore for file data
+    const filesRef = query(
+      collection(firebase_db, "files"),
+      where("fileId", "==", fileId)
+    );
+    const filesSnapshot = await getDocs(filesRef);
 
-    // use fetch to get a response
-    const file = await fetch(DUMMY_URL);
-
-    if (!file) {
-      throw new Error("file not found.");
+    if (filesSnapshot.empty) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
-    // return NextResponse.json({ pdf });
-    return new NextResponse(file.body, {
+
+    const fileData = filesSnapshot.docs[0].data();
+    const { fileName, extension } = fileData;
+
+    // Construct the CDN URL
+    const R2_CDN = `https://assets.arkivio.my.id/${fileId}${extension}`;
+
+    // Instead of fetching and streaming, we'll redirect to the CDN URL
+    return NextResponse.redirect(R2_CDN, {
       headers: {
-        ...file.headers,
-        "content-disposition": `attachment; filename="${fileName}"`,
-        // "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Type": "application/octet-stream",
       },
     });
   } catch (err) {
-    console.log("error", err);
-    return new NextResponse(`Internal error : ${err}`, { status: 500 });
+    console.error("Error processing file request:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

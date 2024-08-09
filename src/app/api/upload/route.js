@@ -3,47 +3,45 @@ import chalk from "chalk";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2 } from "@/lib/r2";
-import { v4 as uuidv4 } from "uuid";
 import addDocument from "@/firebase/firestore/addData";
 import shortUUID from "short-uuid";
-import getDocument from "@/firebase/firestore/readData";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { firebase_db } from "@/firebase/config";
 
 export async function POST(request) {
   const formData = await request.formData();
   const shortUuid = shortUUID();
-  console.log(formData);
   const files = [JSON.parse(formData.getAll("filename"))];
   const user = formData.get("user");
-  console.log(files);
-  console.log("user:", user);
 
-  const filename = files[0].name.replace(/\s+/g, "-");
-  if (user) {
-    const filesRef = query(
-      collection(firebase_db, "files"),
-      where("fileName", "==", filename),
-      where("ownerUid", "==", user)
-    );
-    const filesSnapshot = await getDocs(filesRef);
-    const isDuplicate = filesSnapshot.docs.map((dup) => dup.data());
-    if (isDuplicate.length > 0) {
-      return new NextResponse("File already exists!", { status: 409 });
-    }
-    console.log("isDup read:", isDuplicate);
-  }
+  console.log("Files:", files);
+  console.log("User:", user);
 
   try {
-    console.log(chalk.yellow(`Generating an upload URL!`));
+    console.log(chalk.yellow(`Generating upload URL(s)!`));
 
     const signedUrls = await Promise.all(
       files.map(async (file) => {
-        // const Body = await file.arrayBuffer();
         const filename = file.name.replace(/\s+/g, "-");
         const regex = /(?:\.([^.]+))?$/;
         const filetype = regex.exec(filename)[0];
         const fileId = shortUuid.generate();
+
+        // Check for duplicate files only if the user is logged in
+        if (user !== "anonymous") {
+          const filesRef = query(
+            collection(firebase_db, "files"),
+            where("fileName", "==", filename),
+            where("ownerUid", "==", user)
+          );
+          const filesSnapshot = await getDocs(filesRef);
+          const isDuplicate = filesSnapshot.docs.length > 0;
+
+          if (isDuplicate) {
+            throw new Error("File already exists for this user");
+          }
+        }
+
         const data = {
           downloadUrl: `https://assets.arkivio.my.id/${fileId + filetype}`,
           fileId: fileId,
@@ -51,14 +49,16 @@ export async function POST(request) {
           fileFormat: file.type,
           extension: filetype,
           isPublic: true,
-          ownerUid: user,
+          ownerUid: user || "anonymous",
           timestamp: Date.now(),
         };
 
-        console.log("files read:", files);
         const { result, error } = await addDocument("files", data.fileId, data);
-        console.log("addData result:", result, error);
-        console.log(file.type);
+        if (error) {
+          console.error("Error adding document:", error);
+          throw new Error("Failed to add document to database");
+        }
+
         const signedUrl = await getSignedUrl(
           r2,
           new PutObjectCommand({
@@ -67,13 +67,22 @@ export async function POST(request) {
           }),
           { expiresIn: 3600 }
         );
-        console.log(chalk.green(`Success generating upload URL! ${filename}`));
-        return { signedUrl, fileType: file.type };
+
+        console.log(
+          chalk.green(`Success generating upload URL for ${filename}`)
+        );
+        return { signedUrl, fileType: file.type, fileId: data.fileId };
       })
     );
+
     return NextResponse.json({ urls: signedUrls });
   } catch (err) {
-    console.log("error");
-    return new NextResponse(`Internal error : ${err}`, { status: 500 });
+    console.error("Error:", err);
+    if (err.message === "File already exists for this user") {
+      return new NextResponse("File already exists for this user", {
+        status: 409,
+      });
+    }
+    return new NextResponse(`Internal error: ${err.message}`, { status: 500 });
   }
 }

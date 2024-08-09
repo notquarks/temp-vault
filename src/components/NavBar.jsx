@@ -20,14 +20,24 @@ export default function NavBar() {
   const router = useRouter();
 
   async function signOutUser() {
-    await signOut(auth);
+    try {
+      // Sign out from Firebase
+      await signOut(auth);
 
-    const response = await fetch("http://localhost:3000/api/signout", {
-      method: "POST",
-    });
+      // Call the custom API endpoint to clear the session cookie
+      const response = await fetch("/api/signout", {
+        method: "POST",
+        credentials: "include", // This is important for including cookies in the request
+      });
 
-    if (response.status === 200) {
-      router.push("/");
+      if (response.ok) {
+        console.log("Signed out successfully");
+        router.push("/");
+      } else {
+        console.error("Failed to sign out on the server");
+      }
+    } catch (error) {
+      console.error("Error signing out:", error);
     }
   }
   // console.log("user ", user);

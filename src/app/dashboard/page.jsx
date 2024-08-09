@@ -20,14 +20,19 @@ function Page() {
   const { user } = useAuthContext();
   const router = useRouter();
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (user == null) {
+    if (user === null) {
       router.push("/");
+      return;
     }
-    // console.log("user: ", user);
+
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const response = await fetch("/api/files", {
           method: "GET",
           headers: {
@@ -35,17 +40,30 @@ function Page() {
           },
         });
 
-        if (response.status === 200) {
-          const data = await response.json(); // Read the response data
-          // console.log(data);
-          setFiles(data);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        setFiles(data);
       } catch (error) {
         console.error("Error fetching files:", error);
+        setError("Failed to fetch files. Please try again later.");
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchData();
   }, [user, router]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-14">

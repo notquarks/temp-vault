@@ -60,15 +60,16 @@ export default function Actions({ data }) {
       <Button
         size="icon"
         variant="outline"
+        aria-label="Download"
         onClick={(e) => {
           handleDownload(e);
         }}
       >
         <Download className="h-4 w-4" />
       </Button>
-      <Button size="icon" variant="outline" asChild>
+      <Button size="icon" variant="outline" aria-label="View" asChild>
         <Link
-          href={`${data.downloadUrl}`}
+          href={`${window.location.origin}/${data.fileId}`}
           onClick={(e) => {
             if (e && e.stopPropagation) e.stopPropagation();
           }}
@@ -79,6 +80,7 @@ export default function Actions({ data }) {
       <Button
         size="icon"
         variant="outline"
+        aria-label="Copy link"
         onClick={(e) => {
           copyContent(e);
         }}
@@ -89,6 +91,7 @@ export default function Actions({ data }) {
         <Button
           size="icon"
           variant="outline"
+          aria-label="Delete"
           onClick={(e) => {
             handleDelete(e);
             window.location.reload();

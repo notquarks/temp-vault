@@ -13,29 +13,38 @@ import Link from "next/link";
 
 function Page() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    getRedirectResult(auth).then(async (userCred) => {
-      if (!userCred) {
-        return;
-      }
+    const handleRedirectResult = async () => {
+      try {
+        const userCred = await getRedirectResult(auth);
+        if (userCred) {
+          const idToken = await userCred.user.getIdToken();
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          });
 
-      fetch("/api/login", {
-        method: "POST",
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${await userCred.user.getIdToken()}`,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          router.push("/dashboard");
+          if (response.status === 200) {
+            router.push("/dashboard");
+          } else {
+            console.error("Login failed:", await response.text());
+          }
         }
-        // console.log("login api res:", response);
-      });
-    });
-  }, []);
+      } catch (error) {
+        console.error("Error during login:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [router]);
 
   async function signIn() {
     try {
