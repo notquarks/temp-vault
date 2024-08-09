@@ -52,8 +52,8 @@ export default function NavBar() {
             </Link>
           </section>
           <p>
-            Anonymously Store or Share Your Files - Enjoy 30-Day Temporary File
-            Storage
+            This temporary file storage lets you share or keep your files for 30
+            days
           </p>
         </div>
         <div className="flex items-center justify-between">

@@ -79,8 +79,8 @@ function Page() {
             </Link>
           </section>
           <p>
-            Anonymously Store or Share Your Files - Enjoy 30-Day Temporary File
-            Storage
+            This temporary file storage lets you share or keep your files for 30
+            days
           </p>
         </div>
         <Button onClick={() => signIn()}>Sign In with Google</Button>
