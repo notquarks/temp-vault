@@ -11,6 +11,11 @@ import {
   Trash,
   Upload,
   View,
+  Image as ImageIcon,
+  FileText,
+  FileAudio,
+  FileVideo,
+  FileArchive,
 } from "lucide-react";
 import { Label } from "./label";
 import { Card } from "./card";
@@ -39,41 +44,21 @@ const FileCard = ({ data }) => {
   //   handleDelete(fileData);
   // };
 
-  const handleDelete = async () => {
-    // if (!file_data) return;
-    const body = new FormData();
-    const formData = new FormData();
-    // body.append("file", file_data);
-
-    formData.append(
-      "filename",
-      JSON.stringify({
-        fileId: data.fileId,
-        fileName: data.fileId,
-      })
-    );
-    const bodyfile = body.get("file");
-    // console.log("body:", bodyfile);
-    try {
-      const response = await fetch("/api/delete", {
-        method: "POST",
-        body: formData,
-      });
-      const { urls } = await response.json();
-      // console.log("urls:", urls);
-
-      // await Promise.all(
-      //   urls.map(async (url, index) => {
-      //     const bodyForm = body.get("file");
-      //     console.log("bodyForm:", bodyForm);
-      //     setFiles(file_data);
-      //     const bodyBuffer = await bodyForm.arrayBuffer();
-      //     await axios.put(url.signedUrl, bodyBuffer, {});
-      //   })
-      // );
-      // console.log(file_data);
-    } catch (error) {
-      console.error("Something went wrong, check your console.");
+  const getFileIcon = (fileFormat) => {
+    const format = fileFormat.toLowerCase();
+    switch (true) {
+      case /^image\//.test(format):
+        return <ImageIcon className="h-10 w-10 my-1" />;
+      case /^text\//.test(format) || format === "application/pdf":
+        return <FileText className="h-10 w-10 my-1" />;
+      case /^audio\//.test(format):
+        return <FileAudio className="h-10 w-10 my-1" />;
+      case /^video\//.test(format):
+        return <FileVideo className="h-10 w-10 my-1" />;
+      case /zip|rar|7z|tar/.test(format):
+        return <FileArchive className="h-10 w-10 my-1" />;
+      default:
+        return <File className="h-10 w-10 my-1" />;
     }
   };
 
@@ -90,13 +75,13 @@ const FileCard = ({ data }) => {
           router.push(`/${data.fileId}`);
         }}
       >
-        <div className="col-start-1 col-span-3 justify-items-center items-center">
-          <div className="flex justify-items-center items-center gap-2">
-            <File className="h-10 w-10 my-1" />
-            <p className="text-ellipsis">{data.fileName}</p>
+        <div className="col-start-1 col-span-3 md:justify-items-center md:items-center">
+          <div className="flex md:items-center gap-2">
+            {getFileIcon(data.fileFormat)}
+            <p className="text-ellipsis overflow-hidden">{data.fileName}</p>
           </div>
         </div>
-        <div className="col-start-4 col-span-1 justify-items-center items-center">
+        <div className="md:flex hidden col-start-4 col-span-1 justify-items-center items-center">
           <p>{data.fileFormat}</p>
         </div>
         <div className="col-start-5 col-span-2 justify-items-center items-center">

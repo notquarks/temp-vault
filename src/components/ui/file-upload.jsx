@@ -22,6 +22,8 @@ import { useAuthContext } from "@/context/AuthContext";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { firebase_db } from "@/firebase/config";
 import Actions from "@/app/(root)/components/actions";
+import { useToast } from "./use-toast";
+import { useRouter } from "next/navigation";
 
 const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -30,8 +32,12 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const [fileDB, setFilesDB] = useState({});
   const [downloadUrl, setDownloadUrl] = useState("");
   const [progressValue, setProgressValue] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isUploadComplete, setIsUploadComplete] = useState(false);
   const inputRef = useRef();
   const { user } = useAuthContext();
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,9 +82,14 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   const handleUpload = async (file_data) => {
     if (!file_data) return;
     if (file_data.size > 50 * 1024 * 1024) {
-      alert("File size exceeds 50MB limit.");
+      toast({
+        title: "File too large",
+        description: "File size exceeds 50MB limit.",
+        variant: "destructive",
+      });
       return;
     }
+    setIsUploading(true);
     const fileName = file_data.name.replace(/\s+/g, "-");
     const body = new FormData();
     const formData = new FormData();
@@ -105,7 +116,12 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
         body: formData,
       });
       if (response.status === 409) {
-        alert("File already exists.");
+        toast({
+          title: "File already exists",
+          description: "A file with this name already exists.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
         return;
       }
       const { urls } = await response.json();
@@ -131,34 +147,20 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
           });
         })
       );
-      // console.log(file_data);
-    } catch (error) {
-      console.error("Something went wrong, check your // console.");
-    }
-  };
-
-  const handleDelete = async () => {
-    const formData = new FormData();
-    const parseFileDB = JSON.parse(fileDB);
-    // console.log("fileDB:", parseFileDB);
-    formData.append(
-      "filename",
-      JSON.stringify({
-        fileId: parseFileDB.fileId,
-        fileName: parseFileDB.fileName,
-      })
-    );
-
-    try {
-      const response = await fetch("/api/delete", {
-        method: "POST",
-        body: formData,
+      setIsUploadComplete(true);
+      toast({
+        title: "Upload complete",
+        description: "Your file has been successfully uploaded.",
       });
-      // console.log("urls:", urls);
-
-      // console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your // console.");
+      toast({
+        title: "Upload failed",
+        description: "An error occurred while uploading the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -167,7 +169,7 @@ const FileUpload = ({ disabled, onChange, onRemove, value }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col grow items-center justify-between my-6 md:w-7/12 w-full">
+    <div className="flex-1 flex flex-col grow items-center justify-between my-6 max-w-5xl w-full">
       {!file ? (
         <>
           <input

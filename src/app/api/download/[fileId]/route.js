@@ -6,7 +6,6 @@ export async function GET(req, { params }) {
   const { fileId } = params;
 
   try {
-    // Query Firestore for file data
     const filesRef = query(
       collection(firebase_db, "files"),
       where("fileId", "==", fileId)
@@ -20,13 +19,15 @@ export async function GET(req, { params }) {
     const fileData = filesSnapshot.docs[0].data();
     const { fileName, extension } = fileData;
 
-    // Construct the CDN URL
     const R2_CDN = `https://assets.arkivio.my.id/${fileId}${extension}`;
 
-    // Instead of fetching and streaming, we'll redirect to the CDN URL
+    const encodedFileName = encodeURIComponent(fileName)
+      .replace(/['()]/g, escape)
+      .replace(/\*/g, "%2A");
+
     return NextResponse.redirect(R2_CDN, {
       headers: {
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodedFileName}`,
         "Content-Type": "application/octet-stream",
       },
     });

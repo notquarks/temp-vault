@@ -58,18 +58,26 @@ function Page() {
   }, [user, router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Error: {error}
+      </div>
+    );
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-14">
       <NavBar />
       <div className="flex flex-col justify-center items-center w-full grow">
-        <div className="flex-1 flex flex-col h-full grow items-center gap-2 my-6 md:w-7/12 w-full">
+        <div className="flex-1 flex flex-col h-full grow items-center gap-2 my-6 max-w-5xl w-full">
           {Array.from(files).length > 0 ? (
             files.map((file, index) => <FileCard data={file} key={index} />)
           ) : (
@@ -78,7 +86,6 @@ function Page() {
                 <Card className="flex flex-col grow justify-center gap-4 items-center p-4 py-3">
                   No Files
                 </Card>
-                {/* ))} */}
               </div>
             </>
           )}

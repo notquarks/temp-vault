@@ -1,5 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuthContext } from "@/context/AuthContext";
 import axios from "axios";
 import { Download, Share2, Trash, View } from "lucide-react";
@@ -10,6 +11,7 @@ import React from "react";
 export default function Actions({ data }) {
   const { user } = useAuthContext();
   const route = useRouter();
+  const { toast } = useToast();
   // console.log("data:", data);
 
   async function copyContent(e) {
@@ -19,11 +21,20 @@ export default function Actions({ data }) {
       await navigator.clipboard.writeText(
         `${window.location.origin}/${data.fileId}`
       );
-      alert("Content copied to clipboard");
+      toast({
+        title: "Link copied",
+        description: "The file link has been copied to your clipboard.",
+      });
+      // alert("Content copied to clipboard");
       console.log("Content copied to clipboard");
       /* Resolved - text copied to clipboard successfully */
     } catch (err) {
       console.error("Failed to copy: ", err);
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy the link. Please try again.",
+        variant: "destructive",
+      });
       /* Rejected - text failed to copy to the clipboard */
     }
   }
@@ -49,9 +60,23 @@ export default function Actions({ data }) {
         method: "POST",
         body: formData,
       });
+      if (!response.ok) {
+        throw new Error("Failed to delete file");
+      }
+      router.push("/dashboard");
+      toast({
+        title: "File deleted",
+        description: "The file has been successfully deleted.",
+      });
+      // RouterContext.push("/dashboard");
       // console.log(file_data);
     } catch (error) {
       console.error("Something went wrong, check your console.");
+      toast({
+        title: "Deletion failed",
+        description: "Failed to delete the file. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

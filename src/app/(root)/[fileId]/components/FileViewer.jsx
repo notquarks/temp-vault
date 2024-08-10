@@ -2,6 +2,7 @@ import React from "react";
 import ImageView from "./ImageView";
 import AudioView from "./AudioView";
 import VideoView from "./VideoView";
+import PdfView from "./PdfView";
 import { File } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import OtherFileView from "./OtherFileView";
@@ -15,6 +16,8 @@ export default function FileViewer({ data }) {
       return <AudioView data={filedata} />;
     } else if (filedata.fileFormat.includes("video")) {
       return <VideoView data={filedata} />;
+    } else if (filedata.fileFormat.includes("pdf")) {
+      return <PdfView data={filedata} />;
     } else {
       return <OtherFileView className="h-8 w-8 row-span-1" data={filedata} />;
     }
