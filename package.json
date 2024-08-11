@@ -31,7 +31,11 @@
     "firebase": "^10.6.0",
     "firebase-admin": "^12.3.1",
     "lucide-react": "^0.292.0",
+<<<<<<< HEAD
     "next": "^14.2.5",
+=======
+    "next": "14.2.5",
+>>>>>>> 93df739c4a7c24df4070254ddb51e70d6aee884f
     "next-themes": "^0.2.1",
     "pdfjs-dist": "^3.4.120",
     "react": "^18.3.1",
