@@ -26,9 +26,9 @@ export default function Home() {
   }, [user, router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-14">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-14">
       <NavBar />
-      <div className="flex flex-col justify-center items-center w-full grow">
+      <div className="flex w-full grow flex-col items-center justify-center">
         <FileUpload />
       </div>
       <Footer />

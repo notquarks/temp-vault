@@ -14,10 +14,17 @@ import { Button } from "./ui/button";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase/config";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import AnimatedBackground from "./core/animated-background";
 
 export default function NavBar() {
   const { user } = useAuthContext();
   const router = useRouter();
+  const pathname = usePathname();
+  const TABS = [
+    { name: "Upload", route: "/" },
+    { name: "Files", route: "/dashboard" },
+  ];
 
   async function signOutUser() {
     try {
@@ -42,13 +49,13 @@ export default function NavBar() {
   }
   // console.log("user ", user);
   return (
-    <div className="flex flex-col z-10 max-w-5xl w-full gap-6 font-mono text-sm lg:flex">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <div className="flex flex-col justify-end items-start ">
+    <div className="z-10 flex w-full max-w-5xl flex-col gap-6 font-mono text-sm lg:flex">
+      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+        <div className="flex flex-col items-start justify-end">
           <section className="flex flex-row items-center">
-            <Sailboat className="h-6 w-6 mr-3" />
+            <Sailboat className="mr-3 h-6 w-6" />
             <Link href={"/"} onClick={() => window.location.reload()}>
-              <h1 className="text-4xl font-bold text-center">Arkivio</h1>
+              <h1 className="text-center text-4xl font-bold">Arkivio</h1>
             </Link>
           </section>
           <p>
@@ -96,29 +103,34 @@ export default function NavBar() {
         </div>
       </div>
       {user && (
-        <NavigationMenu>
-          <NavigationMenuList className="gap-6">
-            <NavigationMenuItem>
-              <Link href="/" legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={(navigationMenuTriggerStyle(), "hover:underline")}
-                >
-                  Upload
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-
-            <NavigationMenuItem>
-              <Link href="/dashboard" legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={(navigationMenuTriggerStyle(), "hover:underline")}
-                >
-                  Files
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className="flex w-fit rounded-[8px] p-[2px] dark:bg-zinc-800">
+          <NavigationMenu>
+            <NavigationMenuList className="gap-0">
+              <AnimatedBackground
+                defaultValue={router.pathname === "/" ? "Upload" : "Files"}
+                className="rounded-lg dark:bg-zinc-800"
+                transition={{
+                  type: "spring",
+                  bounce: 0.2,
+                  duration: 0.3,
+                }}
+                enableHover
+              >
+                {TABS.map((tab, index) => (
+                  <NavigationMenuItem key={index} data-id={tab.name}>
+                    <Link href={tab.route} legacyBehavior passHref>
+                      <NavigationMenuLink
+                        className={`inline-flex w-20 items-center justify-center rounded-lg px-2 py-2 text-center font-normal text-zinc-800 transition-transform hover:font-bold active:scale-[0.98] dark:text-zinc-50 dark:hover:bg-zinc-50 dark:hover:text-zinc-800 ${pathname === tab.route ? "bg-zinc-700 font-bold dark:bg-zinc-200 dark:text-zinc-800" : ""}`}
+                      >
+                        {tab.name}
+                      </NavigationMenuLink>
+                    </Link>
+                  </NavigationMenuItem>
+                ))}
+              </AnimatedBackground>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
       )}
     </div>
   );

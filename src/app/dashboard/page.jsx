@@ -16,6 +16,7 @@ import NavBar from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import FileCard from "@/components/ui/file-card";
+import { LoadingPlaceholder } from "@/components/Loading";
 function Page() {
   const { user } = useAuthContext();
   const router = useRouter();
@@ -58,32 +59,28 @@ function Page() {
   }, [user, router]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
-      </div>
-    );
+    return <LoadingPlaceholder />;
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex h-screen items-center justify-center">
         Error: {error}
       </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-14">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-14">
       <NavBar />
-      <div className="flex flex-col justify-center items-center w-full grow">
-        <div className="flex-1 flex flex-col h-full grow items-center gap-2 my-6 max-w-5xl w-full">
+      <div className="flex w-full grow flex-col items-center justify-center">
+        <div className="my-6 flex h-full w-full max-w-5xl flex-1 grow flex-col items-center gap-2">
           {Array.from(files).length > 0 ? (
             files.map((file, index) => <FileCard data={file} key={index} />)
           ) : (
             <>
-              <div className="flex flex-1 grow w-full flex-col m-2 gap-2">
-                <Card className="flex flex-col grow justify-center gap-4 items-center p-4 py-3">
+              <div className="m-2 flex w-full flex-1 grow flex-col gap-2">
+                <Card className="flex grow flex-col items-center justify-center gap-4 p-4 py-3">
                   No Files
                 </Card>
               </div>

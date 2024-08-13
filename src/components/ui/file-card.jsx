@@ -48,17 +48,17 @@ const FileCard = ({ data }) => {
     const format = fileFormat.toLowerCase();
     switch (true) {
       case /^image\//.test(format):
-        return <ImageIcon className="h-10 w-10 my-1" />;
+        return <ImageIcon className="my-1 h-10 w-10" />;
       case /^text\//.test(format) || format === "application/pdf":
-        return <FileText className="h-10 w-10 my-1" />;
+        return <FileText className="my-1 h-10 w-10" />;
       case /^audio\//.test(format):
-        return <FileAudio className="h-10 w-10 my-1" />;
+        return <FileAudio className="my-1 h-10 w-10" />;
       case /^video\//.test(format):
-        return <FileVideo className="h-10 w-10 my-1" />;
+        return <FileVideo className="my-1 h-10 w-10" />;
       case /zip|rar|7z|tar/.test(format):
-        return <FileArchive className="h-10 w-10 my-1" />;
+        return <FileArchive className="my-1 h-10 w-10" />;
       default:
-        return <File className="h-10 w-10 my-1" />;
+        return <File className="my-1 h-10 w-10" />;
     }
   };
 
@@ -69,25 +69,22 @@ const FileCard = ({ data }) => {
   return (
     <>
       <Card
-        className={`grid grid-flow-col grid-cols-6 w-full text-center items-center justify-between gap-3 py-3 hover:bg-input hover:cursor-pointer
-            `}
+        className="grid w-full grid-cols-10 items-center gap-2 px-4 py-3 text-center hover:cursor-pointer hover:bg-input"
         onClick={() => {
           router.push(`/${data.fileId}`);
         }}
       >
-        <div className="col-start-1 col-span-3 md:justify-items-center md:items-center">
-          <div className="flex md:items-center gap-2">
-            {getFileIcon(data.fileFormat)}
-            <p className="text-ellipsis overflow-hidden">{data.fileName}</p>
-          </div>
+        <div className="col-span-9 flex items-center gap-2 sm:col-span-5 md:col-span-6 lg:col-span-7">
+          {getFileIcon(data.fileFormat)}
+          <p className="flex-1 overflow-hidden text-ellipsis text-start">
+            {data.fileName}
+          </p>
         </div>
-        <div className="md:flex hidden col-start-4 col-span-1 justify-items-center items-center">
-          <p>{data.fileFormat}</p>
+        <div className="col-span-1 hidden items-center justify-center sm:col-span-2 sm:flex md:col-span-2 lg:col-span-1">
+          <p className="text-sm">{data.fileFormat}</p>
         </div>
-        <div className="col-start-5 col-span-2 justify-items-center items-center">
-          <div className="flex flex-row gap-2 px-4 justify-end">
-            <Actions data={data} />
-          </div>
+        <div className="col-span-1 hidden items-center justify-end sm:col-span-3 sm:flex md:col-span-2 lg:col-span-2">
+          <Actions data={data} />
         </div>
       </Card>
     </>

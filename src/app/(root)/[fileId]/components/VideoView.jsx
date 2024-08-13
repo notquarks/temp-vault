@@ -4,9 +4,9 @@ import Actions from "../../components/actions";
 
 export default function VideoView({ data }) {
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-lg font-semibold text-center">{data.fileName}</h2>
-      <div className="rounded-lg shadow-md overflow-hidden m-0 p-0">
+    <div className="mx-auto max-w-4xl p-2 md:p-4">
+      <h2 className="text-center text-lg font-semibold">{data.fileName}</h2>
+      <div className="m-0 overflow-hidden rounded-lg p-0 shadow-md">
         <div className="aspect-video">
           <ReactPlayer
             url={data.downloadUrl}

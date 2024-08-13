@@ -34,9 +34,9 @@ export default function FilePage({ params }) {
   }, [fileId]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-14">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-14">
       <NavBar />
-      <div className="flex-1 flex flex-col grow items-center justify-between max-w-5xl w-full">
+      <div className="flex w-full max-w-5xl flex-1 grow flex-col items-center justify-between">
         <FileViewer data={file} />
       </div>
       <Footer />
