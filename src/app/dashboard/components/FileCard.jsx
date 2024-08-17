@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import Actions from "@/app/(root)/components/Actions";
 import { useRouter } from "next/navigation";
 import {
   ImageIcon,
@@ -12,6 +11,7 @@ import {
   FileArchive,
   File,
 } from "lucide-react";
+import Actions from "@/app/(root)/components/Actions";
 
 const FileCard = ({ data, onDelete }) => {
   const [isMounted, setIsMounted] = useState(false);
