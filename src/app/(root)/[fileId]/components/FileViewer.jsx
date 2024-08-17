@@ -4,7 +4,7 @@ import AudioView from "./AudioView";
 import VideoView from "./VideoView";
 import PdfView from "./PdfView";
 import OtherFileView from "./OtherFileView";
-import Actions from "../../components/Actions";
+import Actions from "@/app/(root)/components/Actions";
 
 export default function FileViewer({ data, onDelete }) {
   function getFileType(filedata) {

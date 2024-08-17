@@ -5,7 +5,6 @@ import { useAuthContext } from "@/context/AuthContext";
 import { Download, Share2, Trash, View } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
 
 export default function Actions({ data, onDelete }) {
   const { user } = useAuthContext();

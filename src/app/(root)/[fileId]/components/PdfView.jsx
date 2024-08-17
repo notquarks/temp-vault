@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import { Button } from "@/components/ui/button";
-import Actions from "../../components/Actions";
 import { LoadingPlaceholder } from "@/components/Loading";
 
 const PDFView = ({ data }) => {
