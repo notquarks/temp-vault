@@ -1,3 +1,5 @@
+"use client";
+
 import { Sailboat } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -47,6 +49,10 @@ export default function NavBar() {
       console.error("Error signing out:", error);
     }
   }
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    router.push("/");
+  };
   // console.log("user ", user);
   return (
     <div className="z-10 flex w-full max-w-5xl flex-col gap-6 font-mono text-sm lg:flex">
@@ -54,7 +60,7 @@ export default function NavBar() {
         <div className="flex flex-col items-start justify-end">
           <section className="flex flex-row items-center">
             <Sailboat className="mr-3 h-6 w-6" />
-            <Link href={"/"} onClick={() => window.location.reload()}>
+            <Link href={"/"} onClick={handleLogoClick}>
               <h1 className="text-center text-4xl font-bold">Arkivio</h1>
             </Link>
           </section>

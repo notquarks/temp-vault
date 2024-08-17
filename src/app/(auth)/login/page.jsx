@@ -1,92 +1,9 @@
-"use client";
-import { useEffect, useState } from "react";
-import {
-  getRedirectResult,
-  signInWithRedirect,
-  signInWithPopup,
-} from "firebase/auth";
-import { auth, provider } from "@/firebase/config";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Sailboat } from "lucide-react";
-import Link from "next/link";
+import LoginButton from "./components/LoginButton";
 
-function Page() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [password, setPassword] = useState("");
-  const router = useRouter();
-
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const userCred = await getRedirectResult(auth);
-        if (userCred) {
-          const idToken = await userCred.user.getIdToken();
-          const response = await fetch("/api/login", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
-
-          if (response.status === 200) {
-            router.push("/dashboard");
-          } else {
-            console.error("Login failed:", await response.text());
-          }
-        }
-      } catch (error) {
-        console.error("Error during login:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    handleRedirectResult();
-  }, [router]);
-
-  async function signIn() {
-    try {
-      // Use signInWithPopup instead of signInWithRedirect
-      const userCred = await signInWithPopup(auth, provider);
-      const idToken = await userCred.user.getIdToken();
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      if (response.status === 200) {
-        router.push("/dashboard");
-      } else {
-        console.error("Login failed:", await response.text());
-      }
-    } catch (error) {
-      console.error("Error during sign in:", error);
-    }
-  }
-
+export default function Page() {
   return (
-    <main className="flex min-h-screen w-full justify-center items-center">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col justify-end items-center ">
-          <section className="flex flex-row items-center">
-            <Sailboat className="h-6 w-6 mr-3" />
-            <Link href={"/"} onClick={() => window.location.reload()}>
-              <h1 className="text-4xl font-bold text-center">Arkivio</h1>
-            </Link>
-          </section>
-          <p>
-            This temporary file storage lets you share or keep your files for 30
-            days
-          </p>
-        </div>
-        <Button onClick={() => signIn()}>Sign In with Google</Button>
-      </div>
-    </main>
+    <>
+      <LoginButton />
+    </>
   );
 }
-
-export default Page;

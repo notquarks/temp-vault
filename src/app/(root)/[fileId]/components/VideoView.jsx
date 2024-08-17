@@ -1,6 +1,5 @@
-import React from "react";
 import ReactPlayer from "react-player";
-import Actions from "../../components/actions";
+import Actions from "../../components/Actions";
 
 export default function VideoView({ data }) {
   return (

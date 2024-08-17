@@ -1,45 +1,9 @@
-"use client";
-import { cva } from "class-variance-authority";
-import Image from "next/image";
-import Link from "next/link";
-import { Sailboat, File } from "lucide-react";
-import FileUpload from "@/components/ui/file-upload";
-import NavBar from "@/components/NavBar";
-import { Footer } from "@/components/Footer";
-import { useAuthContext } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import FileViewer from "./components/FileViewer";
-import getDocument from "@/firebase/firestore/readData";
+import FilePageContent from "./components/FilePageContent";
 
 export default function FilePage({ params }) {
-  const fileId = params.fileId;
-  // console.log("fileId: ", fileId);
-  const { user } = useAuthContext();
-  const router = useRouter();
-  const [file, setFile] = useState();
-
-  useEffect(() => {
-    const readDB = async () => {
-      try {
-        const { result, error } = await getDocument("files", fileId);
-        const fileData = result.data();
-        setFile(fileData);
-        // console.log("files read:", fileData);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    readDB(fileId);
-  }, [fileId]);
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-14">
-      <NavBar />
-      <div className="flex w-full max-w-5xl flex-1 grow flex-col items-center justify-between">
-        <FileViewer data={file} />
-      </div>
-      <Footer />
-    </main>
+    <>
+      <FilePageContent fileId={params.fileId} />
+    </>
   );
 }

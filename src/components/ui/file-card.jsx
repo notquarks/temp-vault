@@ -23,7 +23,7 @@ import axios from "axios";
 import { set } from "zod";
 import { Progress } from "./progress";
 import Link from "next/link";
-import Actions from "@/app/(root)/components/actions";
+import Actions from "@/app/(root)/components/Actions";
 import { useRouter } from "next/navigation";
 
 const FileCard = ({ data }) => {

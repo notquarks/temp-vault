@@ -5,7 +5,7 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-const { default: FileUpload } = require("@/components/ui/file-upload");
+const { default: FileUpload } = require("@/app/(root)/components/FileUpload");
 const {
   FormMessage,
   FormControl,
@@ -96,7 +96,7 @@ export const FileForm = ({ initialData, categories, materials }) => {
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex-1 flex flex-col grow justify-center items-center w-full h-full"
+          className="flex h-full w-full flex-1 grow flex-col items-center justify-center"
         >
           <FormField
             control={form.control}

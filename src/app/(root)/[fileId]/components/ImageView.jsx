@@ -1,29 +1,44 @@
 import Image from "next/image";
-import React from "react";
-import Actions from "../../components/actions";
+import React, { useState } from "react";
+import Actions from "../../components/Actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ImageView({ data }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
   return (
-    <div className="flex flex-col h-fit aspect-video justify-center items-center">
-      <p>{data.fileName}</p>
-      <div className="flex flex-col grow justify-center gap-4 items-center p-4 py-3">
-        <div className="relative w-[65%] h-[50svh] aspect-video">
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center p-2">
+      <h1 className="break-all text-center text-xl font-semibold">
+        {data.fileName}
+      </h1>
+      <div className="relative aspect-video w-full">
+        {isLoading && <Skeleton className="absolute h-full w-full" />}
+        {!hasError ? (
           <Image
-            key={data.fileName} // Add key prop here
-            src={`${data.downloadUrl}`}
+            key={data.fileName}
+            src={data.downloadUrl}
+            alt={data.fileName}
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            loading="lazy"
-            onError={(e) => {
-              e.target.src = `${data.downloadUrl}`;
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className={`object-contain transition-opacity duration-300 ${
+              isLoading ? "opacity-0" : "opacity-100"
+            }`}
+            onLoadingComplete={() => setIsLoading(false)}
+            onError={() => {
+              setHasError(true);
+              setIsLoading(false);
             }}
-            className="object-contain w-full h-full object-center"
-            alt=""
+            priority
           />
-        </div>
-        <div className="flex flex-row gap-2">
-          <Actions data={data} />
-        </div>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-200 text-gray-500">
+            Failed to load image
+          </div>
+        )}
+      </div>
+      <div className="flex flex-row gap-2">
+        <Actions data={data} />
       </div>
     </div>
   );
