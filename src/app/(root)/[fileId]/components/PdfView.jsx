@@ -79,12 +79,9 @@ const PDFView = ({ data }) => {
           <div className="flex flex-col p-4">No PDF file specified</div>
         )}
       </div>
-      <div className="mt-4 flex flex-col items-center gap-4 border-t border-gray-200 pt-4 sm:flex-row sm:justify-between">
-        <div className="w-full sm:w-auto">
-          <Actions data={data} />
-        </div>
+      <div className="mt-4 flex w-full max-w-[650px] flex-col items-center justify-center gap-4 border-t border-gray-200 pt-4">
         {numPages && (
-          <div className="flex w-full items-center justify-center gap-2 sm:w-auto">
+          <div className="flex items-center justify-center gap-2">
             <Button
               onClick={() => setPageNumber((page) => Math.max(page - 1, 1))}
               disabled={pageNumber <= 1}

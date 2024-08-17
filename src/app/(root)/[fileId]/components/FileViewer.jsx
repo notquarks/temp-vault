@@ -3,14 +3,11 @@ import ImageView from "./ImageView";
 import AudioView from "./AudioView";
 import VideoView from "./VideoView";
 import PdfView from "./PdfView";
-import { File } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import OtherFileView from "./OtherFileView";
-import { LoadingPlaceholder } from "@/components/Loading";
+import Actions from "../../components/Actions";
 
-export default function FileViewer({ data }) {
+export default function FileViewer({ data, onDelete }) {
   function getFileType(filedata) {
-    // console.log("filedata: ", filedata);
     if (filedata.fileFormat.includes("image")) {
       return <ImageView data={filedata} />;
     } else if (filedata.fileFormat.includes("audio")) {
@@ -23,19 +20,16 @@ export default function FileViewer({ data }) {
       return <OtherFileView className="row-span-1 h-8 w-8" data={filedata} />;
     }
   }
+
   return (
-    <div className="m-2 flex w-full flex-1 grow flex-col gap-2">
-      {data ? (
-        <Card
-          key={data.fileName}
-          className="flex grow flex-col items-center justify-center gap-4 p-4 py-3"
-        >
-          {getFileType(data)}
-        </Card>
-      ) : (
-        <LoadingPlaceholder />
-        // <p>Loading</p>
-      )}
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center space-y-2">
+      <h1 className="break-all text-center text-xl font-semibold">
+        {data.fileName}
+      </h1>
+      {getFileType(data)}
+      <div className="flex flex-row gap-2">
+        <Actions data={data} onDelete={onDelete} />
+      </div>
     </div>
   );
 }

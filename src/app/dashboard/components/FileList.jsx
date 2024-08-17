@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import FileCard from "@/components/ui/file-card";
+import FileCard from "@/app/dashboard/components/FileCard";
 import { LoadingPlaceholder } from "@/components/Loading";
 
 export default function FileList() {
@@ -30,11 +30,9 @@ export default function FileList() {
             Authorization: `UserID ${user.uid}`,
           },
         });
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-
         const data = await response.json();
         setFiles(data);
       } catch (error) {
@@ -47,6 +45,10 @@ export default function FileList() {
 
     fetchData();
   }, [user, router]);
+
+  const handleDelete = (fileId) => {
+    setFiles(files.filter((file) => file.fileId !== fileId));
+  };
 
   if (loading) {
     return <LoadingPlaceholder />;
@@ -63,7 +65,9 @@ export default function FileList() {
   return (
     <>
       {Array.from(files).length > 0 ? (
-        files.map((file, index) => <FileCard data={file} key={index} />)
+        files.map((file, index) => (
+          <FileCard data={file} key={index} onDelete={handleDelete} />
+        ))
       ) : (
         <div className="m-2 flex w-full flex-1 grow flex-col gap-2">
           <Card className="flex grow flex-col items-center justify-center gap-4 p-4 py-3">

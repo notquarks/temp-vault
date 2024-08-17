@@ -1,6 +1,5 @@
 import Image from "next/image";
 import React, { useState } from "react";
-import Actions from "../../components/Actions";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ImageView({ data }) {
@@ -8,38 +7,30 @@ export default function ImageView({ data }) {
   const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center p-2">
-      <h1 className="break-all text-center text-xl font-semibold">
-        {data.fileName}
-      </h1>
-      <div className="relative aspect-video w-full">
-        {isLoading && <Skeleton className="absolute h-full w-full" />}
-        {!hasError ? (
-          <Image
-            key={data.fileName}
-            src={data.downloadUrl}
-            alt={data.fileName}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className={`object-contain transition-opacity duration-300 ${
-              isLoading ? "opacity-0" : "opacity-100"
-            }`}
-            onLoadingComplete={() => setIsLoading(false)}
-            onError={() => {
-              setHasError(true);
-              setIsLoading(false);
-            }}
-            priority
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-200 text-gray-500">
-            Failed to load image
-          </div>
-        )}
-      </div>
-      <div className="flex flex-row gap-2">
-        <Actions data={data} />
-      </div>
+    <div className="relative aspect-video w-full">
+      {isLoading && <Skeleton className="absolute h-full w-full" />}
+      {!hasError ? (
+        <Image
+          key={data.fileName}
+          src={data.downloadUrl}
+          alt={data.fileName}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className={`object-contain transition-opacity duration-300 ${
+            isLoading ? "opacity-0" : "opacity-100"
+          }`}
+          onLoadingComplete={() => setIsLoading(false)}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          priority
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-gray-200 text-gray-500">
+          Failed to load image
+        </div>
+      )}
     </div>
   );
 }

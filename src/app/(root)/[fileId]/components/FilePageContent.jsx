@@ -5,6 +5,8 @@ import { useAuthContext } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import FileViewer from "./FileViewer";
 import getDocument from "@/firebase/firestore/readData";
+import { LoadingPlaceholder } from "@/components/Loading";
+import { Card } from "@/components/ui/card";
 
 export default function FilePageContent({ fileId }) {
   const { user } = useAuthContext();
@@ -31,9 +33,19 @@ export default function FilePageContent({ fileId }) {
     readDB();
   }, [fileId]);
 
-  if (loading) return <div>Loading...</div>;
+  const handleDelete = () => {
+    router.push("/dashboard");
+  };
+
+  if (loading) return <LoadingPlaceholder />;
   if (error) return <div>Error: {error}</div>;
   if (!file) return <div>File not found</div>;
 
-  return <FileViewer data={file} />;
+  return (
+    <div className="m-2 flex w-full flex-1 grow flex-col gap-2">
+      <Card className="flex grow flex-col items-center justify-center gap-4 p-4 py-3">
+        <FileViewer data={file} onDelete={handleDelete} />
+      </Card>
+    </div>
+  );
 }

@@ -2,32 +2,27 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuthContext } from "@/context/AuthContext";
-import axios from "axios";
 import { Download, Share2, Trash, View } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 
-export default function Actions({ data }) {
+export default function Actions({ data, onDelete }) {
   const { user } = useAuthContext();
-  const route = useRouter();
+  const router = useRouter();
   const { toast } = useToast();
-  // console.log("data:", data);
 
   async function copyContent(e) {
     if (e && e.stopPropagation) e.stopPropagation();
 
     try {
       await navigator.clipboard.writeText(
-        `${window.location.origin}/${data.fileId}`
+        `${window.location.origin}/${data.fileId}`,
       );
       toast({
         title: "Link copied",
         description: "The file link has been copied to your clipboard.",
       });
-      // alert("Content copied to clipboard");
-      console.log("Content copied to clipboard");
-      /* Resolved - text copied to clipboard successfully */
     } catch (err) {
       console.error("Failed to copy: ", err);
       toast({
@@ -35,13 +30,12 @@ export default function Actions({ data }) {
         description: "Failed to copy the link. Please try again.",
         variant: "destructive",
       });
-      /* Rejected - text failed to copy to the clipboard */
     }
   }
 
   const handleDownload = async (e) => {
     if (e && e.stopPropagation) e.stopPropagation();
-    route.push(`/api/download/${data.fileId}`);
+    router.push(`/api/download/${data.fileId}`);
   };
 
   const handleDelete = async (e) => {
@@ -53,7 +47,7 @@ export default function Actions({ data }) {
       JSON.stringify({
         fileId: data.fileId,
         fileName: data.fileId,
-      })
+      }),
     );
     try {
       const response = await fetch("/api/delete", {
@@ -63,15 +57,20 @@ export default function Actions({ data }) {
       if (!response.ok) {
         throw new Error("Failed to delete file");
       }
-      router.push("/dashboard");
       toast({
         title: "File deleted",
         description: "The file has been successfully deleted.",
       });
-      // RouterContext.push("/dashboard");
-      // console.log(file_data);
+      // Call the onDelete callback to update the parent component's state
+      if (onDelete) {
+        onDelete(data.fileId);
+      }
+      // Optionally navigate to dashboard if this component is used in a single file view
+      if (window.location.pathname !== "/dashboard") {
+        router.push("/dashboard");
+      }
     } catch (error) {
-      console.error("Something went wrong, check your console.");
+      console.error("Something went wrong:", error);
       toast({
         title: "Deletion failed",
         description: "Failed to delete the file. Please try again.",
@@ -86,15 +85,13 @@ export default function Actions({ data }) {
         size="icon"
         variant="outline"
         aria-label="Download"
-        onClick={(e) => {
-          handleDownload(e);
-        }}
+        onClick={handleDownload}
       >
         <Download className="h-4 w-4" />
       </Button>
       <Button size="icon" variant="outline" aria-label="View" asChild>
         <Link
-          href={`${window.location.origin}/${data.fileId}`}
+          href={`/${data.fileId}`}
           onClick={(e) => {
             if (e && e.stopPropagation) e.stopPropagation();
           }}
@@ -106,9 +103,7 @@ export default function Actions({ data }) {
         size="icon"
         variant="outline"
         aria-label="Copy link"
-        onClick={(e) => {
-          copyContent(e);
-        }}
+        onClick={copyContent}
       >
         <Share2 className="h-4 w-4" />
       </Button>
@@ -117,10 +112,7 @@ export default function Actions({ data }) {
           size="icon"
           variant="outline"
           aria-label="Delete"
-          onClick={(e) => {
-            handleDelete(e);
-            window.location.reload();
-          }}
+          onClick={handleDelete}
         >
           <Trash className="h-4 w-4" />
         </Button>
