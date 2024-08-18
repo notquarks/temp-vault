@@ -18,6 +18,9 @@ import { auth } from "@/firebase/config";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import AnimatedBackground from "./core/animated-background";
+import GradualSpacing from "./magicui/gradual-spacing";
+import BoxReveal from "./magicui/box-reveal";
+import { FadeText } from "./magicui/fade-text";
 
 export default function NavBar() {
   const { user } = useAuthContext();
@@ -61,13 +64,21 @@ export default function NavBar() {
           <section className="flex flex-row items-center">
             <Sailboat className="mr-3 h-6 w-6" />
             <Link href={"/"} onClick={handleLogoClick}>
-              <h1 className="text-center text-4xl font-bold">Arkivio</h1>
+              <GradualSpacing
+                className="font-display text-center text-3xl font-bold text-black dark:text-white md:text-5xl"
+                text="Arkivio"
+              />
+              {/* <h1 className="text-center text-4xl font-bold">Arkivio</h1> */}
             </Link>
           </section>
-          <p>
-            This temporary file storage lets you share or keep your files for 30
-            days
-          </p>
+          <FadeText
+            className="font-medium text-black dark:text-white"
+            direction="left"
+            framerProps={{
+              show: { transition: { delay: 0.3 } },
+            }}
+            text="This temporary file storage lets you share or keep your files for 30 days"
+          />
         </div>
         <div className="flex items-center justify-between">
           <NavigationMenu>
