@@ -35,7 +35,11 @@ export default function LoginButton() {
   }
 
   return (
-    <Button onClick={signIn} disabled={loading}>
+    <Button
+      className="bg-rose-700 dark:bg-rose-700 dark:text-white"
+      onClick={signIn}
+      disabled={loading}
+    >
       {loading ? "Signing In..." : "Sign In with Google"}
     </Button>
   );

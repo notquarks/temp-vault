@@ -2,8 +2,8 @@ import React from "react";
 
 export const LoadingPlaceholder = () => {
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="mx-auto text-center">Loading...</div>
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="text-center">Loading...</div>
     </div>
   );
 };

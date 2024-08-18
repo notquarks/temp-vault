@@ -10,7 +10,8 @@ import { useAuthContext } from "@/context/AuthContext";
 import Actions from "@/app/(root)/components/Actions";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import { uploadFile, readFileFromDB } from "@/lib/utils";
+import { uploadFile, readFileFromDB, cn } from "@/lib/utils";
+import PulsatingButton from "@/components/ui/pulsating-button";
 
 const FileUpload = () => {
   const [isDragActive, setIsDragActive] = useState(false);
@@ -27,13 +28,6 @@ const FileUpload = () => {
   const handleDrag = useCallback((event) => {
     event.preventDefault();
     setIsDragActive(event.type === "dragenter" || event.type === "dragover");
-  }, []);
-
-  const handleDrop = useCallback(async (event) => {
-    event.preventDefault();
-    setIsDragActive(false);
-    const newFile = event.dataTransfer.files[0];
-    await handleUpload(newFile);
   }, []);
 
   const handleUpload = useCallback(
@@ -86,6 +80,16 @@ const FileUpload = () => {
     [user, toast, router],
   );
 
+  const handleDrop = useCallback(
+    async (event) => {
+      event.preventDefault();
+      setIsDragActive(false);
+      const newFile = event.dataTransfer.files[0];
+      await handleUpload(newFile);
+    },
+    [handleUpload],
+  );
+
   const renderUploadArea = () => (
     <>
       <input
@@ -106,9 +110,18 @@ const FileUpload = () => {
       >
         <Upload className="m-2 h-12 w-12" />
         Drag and drop your file here (max 50MB).
-        <Button onClick={() => inputRef.current.click()} disabled={isUploading}>
-          Choose File
-        </Button>
+        <PulsatingButton
+          className={"bg-rose-700 dark:bg-rose-700 dark:text-white"}
+          pulseColor="rgb(244 63 94)"
+          duration="1.8s"
+        >
+          <button
+            onClick={() => inputRef.current.click()}
+            disabled={isUploading}
+          >
+            Choose File
+          </button>
+        </PulsatingButton>
       </Card>
     </>
   );

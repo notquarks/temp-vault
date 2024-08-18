@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import FileCard from "@/app/dashboard/components/FileCard";
 import { LoadingPlaceholder } from "@/components/Loading";
+import { AnimatedList } from "@/components/magicui/animated-list";
 
 export default function FileList() {
   const { user } = useAuthContext();
@@ -65,9 +66,11 @@ export default function FileList() {
   return (
     <>
       {Array.from(files).length > 0 ? (
-        files.map((file, index) => (
-          <FileCard data={file} key={index} onDelete={handleDelete} />
-        ))
+        <AnimatedList delay="50" loop={false}>
+          {files.map((file, index) => (
+            <FileCard data={file} key={index} onDelete={handleDelete} />
+          ))}
+        </AnimatedList>
       ) : (
         <div className="m-2 flex w-full flex-1 grow flex-col gap-2">
           <Card className="flex grow flex-col items-center justify-center gap-4 p-4 py-3">
