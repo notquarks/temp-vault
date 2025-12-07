@@ -43,6 +43,8 @@ const FileUpload = () => {
       }
 
       setIsUploading(true);
+      setFile(fileData);
+
       try {
         const result = await uploadFile(fileData, user, setProgressValue);
         if (result.error) {
@@ -53,7 +55,6 @@ const FileUpload = () => {
           user?.uid || "anonymous",
         );
         setFileDB(dbData);
-        setFile(fileData);
         setDownloadUrl(dbData.downloadUrl);
         toast({
           title: "Upload complete",
@@ -144,7 +145,7 @@ const FileUpload = () => {
         )}
         <Progress value={progressValue} className="w-[60%]" />
         <div className="row-start-6 flex justify-end gap-2">
-          <Actions data={fileDB} />
+          {fileDB ? <Actions data={fileDB} /> : null}
         </div>
       </Card>
       <Card className="flex flex-col items-center justify-center py-3">

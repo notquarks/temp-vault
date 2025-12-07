@@ -8,7 +8,7 @@ export async function GET(req, { params }) {
   try {
     const filesRef = query(
       collection(firebase_db, "files"),
-      where("fileId", "==", fileId)
+      where("fileId", "==", fileId),
     );
     const filesSnapshot = await getDocs(filesRef);
 
@@ -21,21 +21,30 @@ export async function GET(req, { params }) {
 
     const R2_CDN = `https://assets.arkivio.my.id/${fileId}${extension}`;
 
+    const response = await fetch(R2_CDN, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file from R2: ${response.statusText}`);
+    }
+
     const encodedFileName = encodeURIComponent(fileName)
       .replace(/['()]/g, escape)
       .replace(/\*/g, "%2A");
 
-    return NextResponse.redirect(R2_CDN, {
+    return new NextResponse(response.body, {
       headers: {
         "Content-Disposition": `attachment; filename*=UTF-8''${encodedFileName}`,
-        "Content-Type": "application/octet-stream",
+        "Content-Type":
+          response.headers.get("Content-Type") || "application/octet-stream",
+        "Content-Length": response.headers.get("Content-Length"),
       },
     });
   } catch (err) {
     console.error("Error processing file request:", err);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

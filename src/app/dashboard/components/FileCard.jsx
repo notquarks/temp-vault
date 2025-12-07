@@ -39,6 +39,30 @@ const FileCard = ({ data, onDelete }) => {
     }
   };
 
+  const formatFileType = (mimeType) => {
+    if (!mimeType) return "Unknown";
+    const typeMap = {
+      "application/pdf": "PDF",
+      "application/zip": "ZIP",
+      "application/x-zip-compressed": "ZIP",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        "DOCX",
+      "application/msword": "DOC",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        "XLSX",
+      "application/vnd.ms-excel": "XLS",
+      "text/plain": "TXT",
+    };
+    if (typeMap[mimeType]) return typeMap[mimeType];
+    if (mimeType.startsWith("image/"))
+      return mimeType.split("/")[1].toUpperCase();
+    if (mimeType.startsWith("video/"))
+      return mimeType.split("/")[1].toUpperCase();
+    if (mimeType.startsWith("audio/"))
+      return mimeType.split("/")[1].toUpperCase();
+    return mimeType.split("/")[1]?.toUpperCase() || mimeType;
+  };
+
   const handleCardClick = (e) => {
     // Prevent navigation if the click was on an action button
     if (e.target.closest(".action-buttons")) return;
@@ -51,19 +75,19 @@ const FileCard = ({ data, onDelete }) => {
 
   return (
     <Card
-      className="grid w-full grid-cols-10 items-center gap-2 px-4 py-3 text-center hover:cursor-pointer hover:bg-input"
+      className="group grid w-full grid-cols-10 items-center gap-2 px-4 py-3 text-center transition-colors duration-200 hover:cursor-pointer hover:bg-accent/50"
       onClick={handleCardClick}
     >
-      <div className="col-span-9 flex items-center gap-2 sm:col-span-5 md:col-span-6 lg:col-span-7">
+      <div className="col-span-8 flex items-center gap-2 sm:col-span-5 md:col-span-6 lg:col-span-7">
         {getFileIcon(data.fileFormat)}
         <p className="flex-1 overflow-hidden text-ellipsis text-start">
           {data.fileName}
         </p>
       </div>
       <div className="col-span-1 hidden items-center justify-center sm:col-span-2 sm:flex md:col-span-2 lg:col-span-1">
-        <p className="text-sm">{data.fileFormat}</p>
+        <p className="text-sm">{formatFileType(data.fileFormat)}</p>
       </div>
-      <div className="action-buttons col-span-1 hidden items-center justify-end sm:col-span-3 sm:flex md:col-span-2 lg:col-span-2">
+      <div className="action-buttons col-span-2 flex items-center justify-end sm:col-span-3 sm:flex md:col-span-2 lg:col-span-2">
         <Actions data={data} onDelete={() => onDelete(data.fileId)} />
       </div>
     </Card>

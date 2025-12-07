@@ -79,43 +79,52 @@ export default function Actions({ data, onDelete }) {
   };
 
   return (
-    <>
+    <div className="flex flex-row gap-2">
       <Button
         size="icon"
-        variant="outline"
+        variant="default"
+        className="group/btn h-8 w-8 border border-white bg-transparent shadow-sm hover:bg-white"
         aria-label="Download"
         onClick={handleDownload}
       >
-        <Download className="h-4 w-4" />
+        <Download className="h-4 w-4 text-white transition-colors group-hover/btn:text-black" />
       </Button>
-      <Button size="icon" variant="outline" aria-label="View" asChild>
+      <Button
+        size="icon"
+        variant="default"
+        className="group/btn h-8 w-8 border border-white bg-transparent shadow-sm hover:bg-white"
+        aria-label="View"
+        asChild
+      >
         <Link
           href={`/${data.fileId}`}
           onClick={(e) => {
             if (e && e.stopPropagation) e.stopPropagation();
           }}
         >
-          <View className="h-4 w-4" />
+          <View className="h-4 w-4 text-white transition-colors group-hover/btn:text-black" />
         </Link>
       </Button>
       <Button
         size="icon"
-        variant="outline"
+        variant="default"
+        className="group/btn h-8 w-8 border border-white bg-transparent shadow-sm hover:bg-white"
         aria-label="Copy link"
         onClick={copyContent}
       >
-        <Share2 className="h-4 w-4" />
+        <Share2 className="h-4 w-4 text-white transition-colors group-hover/btn:text-black" />
       </Button>
       {user?.uid === data.ownerUid && (
         <Button
           size="icon"
-          variant="outline"
+          variant="default"
+          className="group/btn h-8 w-8 border border-white bg-transparent shadow-sm hover:bg-red-100 dark:hover:bg-red-900/30"
           aria-label="Delete"
           onClick={handleDelete}
         >
-          <Trash className="h-4 w-4" />
+          <Trash className="h-4 w-4 text-white transition-colors group-hover/btn:text-red-600 dark:group-hover/btn:text-red-400" />
         </Button>
       )}
-    </>
+    </div>
   );
 }
