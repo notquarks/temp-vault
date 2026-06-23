@@ -2,7 +2,16 @@
 .env
 /node_modules/
 **/.env
+server/node_modules/
+
+/server/data/
 
 # React Router
 /.react-router/
 /build/
+server/build/
+
+server/drizzle/
+server/data
+.DS_Store
+Thumbs.db
