@@ -1,8 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bitcount+Prop+Single:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Michroma&family=Orbitron:wght@400..900&family=Oswald:wght@200..700&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400..800&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-orbitron: "Orbitron", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+  --font-rajdhani: "Rajdhani", sans-serif;
+  --font-syne: "Syne", sans-serif;
+  --font-michroma: "Michroma", sans-serif;
+  --font-bebasneue: "Bebas Neue", sans-serif;
+  --font-bitcount: "Bitcount Prop Single", sans-serif;
+  --font-ibmplex: "IBM Plex Mono", monospace;
+  --font-oswald: "Oswald", sans-serif;
+  --font-spacemono: "Space Mono", monospace;
 }
 
 html,
