@@ -24,7 +24,9 @@ export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
           "http://localhost:5173",
           process.env.VITE_BACKEND_URL,
         ].filter(Boolean) as string[],
-        baseURL: process.env.VITE_BACKEND_URL || "/api/auth",
+        ...(process.env.VITE_BACKEND_URL
+          ? { baseURL: `${process.env.VITE_BACKEND_URL}/api/auth` }
+          : {}),
       });
     }
     const value = _auth[prop as keyof typeof _auth];

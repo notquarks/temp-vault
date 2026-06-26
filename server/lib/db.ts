@@ -1,15 +1,20 @@
 import { drizzle } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client/web";
+import { createClient } from "@libsql/client";
 import * as schema from "../db/schema";
+import path from "path";
 
 let _db: ReturnType<typeof drizzle>;
 let _sqlite: ReturnType<typeof createClient>;
 
 function getInstances() {
   if (!_sqlite) {
+    const isLocal = typeof process !== "undefined" && !!(process.versions?.node || process.versions?.bun);
+    
     _sqlite = createClient({
-      url: process.env.TURSO_DATABASE_URL || "file:data/main.db",
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      url: isLocal 
+        ? `file:${path.join(__dirname, "../data/main.db")}` 
+        : process.env.TURSO_DATABASE_URL!,
+      authToken: isLocal ? undefined : process.env.TURSO_AUTH_TOKEN,
     });
     _db = drizzle(_sqlite, { schema });
   }
