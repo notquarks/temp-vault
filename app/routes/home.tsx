@@ -4,7 +4,7 @@ import HomeScreen from "~/pages";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "Arkivio // Temp Storage" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
