@@ -1,4 +1,3 @@
-// app/lib/auth-client.ts
 import { usernameClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 

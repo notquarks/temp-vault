@@ -1,6 +1,5 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
-import HomeScreen from "~/pages";
+import ViewScreen from "~/pages/view/view_screen";
+import type { Route } from "./+types/view";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -10,5 +9,5 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <HomeScreen />;
+  return <ViewScreen />;
 }

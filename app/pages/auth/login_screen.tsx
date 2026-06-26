@@ -10,7 +10,7 @@ export function LoginScreen({}) {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (username == "" || password == "") {
+    if (username === "" || password === "") {
       alert("Please enter both username and password.");
       return;
     }
@@ -20,19 +20,22 @@ export function LoginScreen({}) {
       password: password,
     });
 
+    const session = await authClient
+      .getSession()
+      .then(() => navigate("/dashboard"));
     if (error) return;
     else navigate("/dashboard");
   };
 
   return (
-    <main className="flex items-center justify-center min-h-dvh">
-      <div className="flex-col justify-center bg-black max-w-dvw max-h-dvh">
+    <main className="flex min-h-dvh items-center justify-center">
+      <div className="max-h-dvh max-w-dvw flex-col justify-center">
         <div className="py-8">
-          <h1 className="text-6xl font-extrabold font-orbitron">\\ LOGIN</h1>
+          <h1 className="font-orbitron text-6xl font-extrabold">\\ LOGIN</h1>
         </div>
         <form onSubmit={handleLogin}>
           <div className="flex flex-col py-2 font-syne">
-            <label htmlFor="username" className="font-light font-syne">
+            <label htmlFor="username" className="font-syne font-light">
               USERNAME //
             </label>
             <input
@@ -46,7 +49,7 @@ export function LoginScreen({}) {
             />
           </div>
           <div className="flex flex-col py-2 font-syne">
-            <label htmlFor="password" className="font-light font-syne">
+            <label htmlFor="password" className="font-syne font-light">
               PASSWORD //
             </label>
             <input
@@ -61,7 +64,7 @@ export function LoginScreen({}) {
           </div>
           <button
             type="submit"
-            className="mt-2 px-2 py-1 font-rajdhani text-2xl font-extrabold w-full bg-white text-black hover:outline hover:outline-1 hover:outline-white hover:bg-black hover:text-white hover:cursor-pointer"
+            className="mt-2 w-full bg-white px-2 py-1 font-rajdhani text-2xl font-extrabold text-black hover:cursor-pointer hover:bg-black hover:text-white hover:outline hover:outline-1 hover:outline-white"
           >
             LOGIN
           </button>

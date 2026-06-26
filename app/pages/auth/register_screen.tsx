@@ -19,10 +19,10 @@ export function RegisterScreen({}) {
     }
 
     const { data, error } = await authClient.signUp.email({
-      name: username, // required
+      name: username,
       username: username,
-      email: email, // required
-      password: password, // required
+      email: email,
+      password: password,
       image: "https://example.com/image.png",
     });
 
@@ -35,10 +35,10 @@ export function RegisterScreen({}) {
   };
 
   return (
-    <main className="flex items-center justify-center min-h-dvh">
-      <div className="flex-col justify-center bg-black max-w-dvw max-h-dvh">
+    <main className="flex min-h-dvh items-center justify-center">
+      <div className="max-h-dvh max-w-dvw flex-col justify-center">
         <div className="py-8">
-          <h1 className="text-6xl font-extrabold font-orbitron">\\ REGISTER</h1>
+          <h1 className="font-orbitron text-6xl font-extrabold">\\ REGISTER</h1>
         </div>
         <form onSubmit={handleRegister}>
           <div className="flex flex-col py-2 font-syne">
@@ -73,7 +73,7 @@ export function RegisterScreen({}) {
             <label htmlFor="password" className="font-light">
               PASSWORD //
             </label>
-            <div className="flex w-full border-2 border-white px-2 py-1 ">
+            <div className="flex w-full border-2 border-white px-2 py-1">
               <input
                 type={passInputType}
                 name="password"
@@ -88,7 +88,7 @@ export function RegisterScreen({}) {
           </div>
           <button
             type="submit"
-            className="mt-2 px-2 py-1 font-rajdhani text-2xl font-extrabold w-full bg-white text-black hover:outline hover:outline-1 hover:outline-white hover:bg-black hover:text-white hover:cursor-pointer"
+            className="mt-2 w-full bg-white px-2 py-1 font-rajdhani text-2xl font-extrabold text-black hover:cursor-pointer hover:bg-black hover:text-white hover:outline hover:outline-1 hover:outline-white"
           >
             REGISTER
           </button>

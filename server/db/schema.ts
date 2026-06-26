@@ -57,3 +57,36 @@ export const verification = sqliteTable("verification", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+export const filelist = sqliteTable("files", {
+  id: text("id").primaryKey(),
+  name: text("filename"),
+  ownerId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  private: integer("is_private").notNull(),
+  type: text("file_type").notNull(),
+  size: text("string").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const fileKeys = sqliteTable("file_keys", {
+  fileId: text("file_id")
+    .primaryKey()
+    .references(() => filelist.id, { onDelete: "cascade" }),
+  iv: text("iv_file").notNull(),
+  ivName: text("iv_name").notNull(),
+  key: text("enc_key").notNull(),
+  wrapIv: text("wrap_iv").notNull(),
+});
+
+export const shares = sqliteTable("shares", {
+  id: text("id").primaryKey(),
+  fileId: text("file_id")
+    .notNull()
+    .references(() => filelist.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});

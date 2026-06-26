@@ -1,4 +1,3 @@
-// server/lib/auth.ts
 import { betterAuth } from "better-auth";
 import { username } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -13,7 +12,7 @@ export const auth = betterAuth({
   plugins: [username()],
   emailAndPassword: {
     enabled: true,
-    autoSignIn: true,
+    autoSignIn: false,
     requireEmailVerification: false,
   },
   trustedOrigins: ["http://localhost:5173"],

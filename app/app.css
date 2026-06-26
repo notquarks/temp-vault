@@ -15,13 +15,23 @@
   --font-ibmplex: "IBM Plex Mono", monospace;
   --font-oswald: "Oswald", sans-serif;
   --font-spacemono: "Space Mono", monospace;
+
+  --color-paper: #181816;
+  --color-amber: #E8481C;
+  --color-amber-bright: #F05830;
+  --color-parchment: #C8927A;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  background-color: #181816;
+  color-scheme: dark;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+.marathon-grid {
+  background-color: #181816;
+  background-image:
+    linear-gradient(rgba(232, 72, 28, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 72, 28, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
