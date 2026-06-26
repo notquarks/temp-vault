@@ -10,7 +10,13 @@ const app = new Hono();
 app.use(
   "/api/auth/*",
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        process.env.VITE_BACKEND_URL,
+      ].filter(Boolean);
+      return allowedOrigins.includes(origin) ? origin : "http://localhost:5173";
+    },
     credentials: true,
   }),
 );

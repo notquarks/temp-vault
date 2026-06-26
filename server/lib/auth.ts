@@ -20,7 +20,11 @@ export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
           autoSignIn: false,
           requireEmailVerification: false,
         },
-        trustedOrigins: ["http://localhost:5173"],
+        trustedOrigins: [
+          "http://localhost:5173",
+          process.env.VITE_BACKEND_URL,
+        ].filter(Boolean) as string[],
+        baseURL: process.env.VITE_BACKEND_URL || "/api/auth",
       });
     }
     const value = _auth[prop as keyof typeof _auth];
