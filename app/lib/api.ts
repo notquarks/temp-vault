@@ -252,7 +252,7 @@ export async function download(
     }
 
     const meta = await metaRes.json();
-    const { encrypted_key, enc_name, iv_name } = meta;
+    const { iv, encrypted_key, enc_name, iv_name, isPrivate } = meta;
 
     const rawKey = Uint8Array.from(atob(encrypted_key), (c) => c.charCodeAt(0));
     const fileKey = await crypto.subtle.importKey(
@@ -270,6 +270,21 @@ export async function download(
       fileKey,
       ivNameBytes,
     );
+
+    if (isPrivate) {
+      const fileRes = await fetch(`/api/files/${fileId}${shareQuery}`, {
+        signal: options?.signal,
+      });
+      if (!fileRes.ok) {
+        throw new UploadError(`Failed to fetch file (${fileRes.status})`, "SERVER_ERROR", fileRes.status);
+      }
+      const ivBytes = Uint8Array.from(atob(iv), (c) => c.charCodeAt(0));
+      const encData = await fileRes.arrayBuffer();
+      const fileBuffer = await decryptFile(encData, fileKey, ivBytes);
+      const blob = new Blob([fileBuffer]);
+      const blobUrl = URL.createObjectURL(blob);
+      return { blobUrl, name: decryptedName };
+    }
 
     const ext = decryptedName.split('.').pop()?.toLowerCase() || "";
     const cdnUrl = `https://cdn.arkivio.my.id/${fileId}${ext ? '.' + ext : ''}${shareQuery}`;

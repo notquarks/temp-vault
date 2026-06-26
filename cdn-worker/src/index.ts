@@ -86,8 +86,9 @@ export default {
           "Access-Control-Allow-Origin": "*",
         },
       });
-    } catch (e) {
-      return new Response("Internal Server Error", { status: 500 });
+    } catch (e: any) {
+      console.error(e);
+      return new Response(`Internal Server Error: ${e.message || e.toString()}`, { status: 500 });
     }
   },
 };

@@ -224,6 +224,7 @@ files.get("/:id/meta", async (c) => {
       encrypted_key: rawKeyB64,
       enc_name: rows[0].files.name,
       iv_name: fk.ivName,
+      isPrivate: fileRow.private === 1,
     },
     200,
     {

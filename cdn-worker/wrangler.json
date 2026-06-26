@@ -2,5 +2,20 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "arkivio-cdn",
   "main": "src/index.ts",
-  "compatibility_date": "2024-03-20"
+  "compatibility_date": "2024-03-20",
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "arkivio-bucket"
+    }
+  ],
+  "vars": {
+    "API_URL": "https://arkivio.my.id"
+  },
+  "routes": [
+    {
+      "pattern": "cdn.arkivio.my.id",
+      "custom_domain": true
+    }
+  ]
 }
