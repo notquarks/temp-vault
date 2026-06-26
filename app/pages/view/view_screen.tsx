@@ -107,23 +107,19 @@ export default function ViewScreen() {
                 className="max-h-[80vh] max-w-full rounded-sm"
               />
             )}
-            {!isImage && !isVideo && (
-              <div className="text-center">
-                <p className="mb-4 font-syne text-sm tracking-[0.08em] text-white/60">
-                  {name}
-                </p>
-                <a
-                  href={blobUrl}
-                  download={name}
-                  className="inline-block border border-amber-400/60 bg-amber-400/[0.06] px-5 py-1.5 font-rajdhani text-base font-bold tracking-[0.1em] text-amber-300 uppercase transition-colors hover:bg-amber-400 hover:text-black"
-                >
-                  DOWNLOAD
-                </a>
-              </div>
-            )}
-            <p className="font-syne text-xs tracking-[0.08em] text-white/40">
-              {name}
-            </p>
+
+            <div className="text-center">
+              <p className="mb-4 font-syne text-sm tracking-[0.08em] text-white/60">
+                {name}
+              </p>
+              <a
+                href={blobUrl}
+                download={name}
+                className="inline-block border border-amber-400/60 bg-amber-400/[0.06] px-5 py-1.5 font-rajdhani text-base font-bold tracking-[0.1em] text-amber-300 uppercase transition-colors hover:bg-amber-400 hover:text-black"
+              >
+                DOWNLOAD
+              </a>
+            </div>
           </div>
         )}
       </div>
