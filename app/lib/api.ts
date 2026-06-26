@@ -14,18 +14,13 @@ export interface UploadResult {
 }
 
 export interface UploadProgress {
-  /** 0–100 percent */
   percent: number;
-  /** bytes sent so far */
   loaded: number;
-  /** total bytes */
   total: number;
 }
 
 export interface UploadOptions {
-  /** Optional — set to track real upload progress (uses XHR internally) */
   onProgress?: (progress: UploadProgress) => void;
-  /** AbortSignal for cancellation */
   signal?: AbortSignal;
 }
 
@@ -244,20 +239,10 @@ export async function download(
 ): Promise<{ blobUrl: string; name: string }> {
   try {
     const shareQuery = options?.shareId ? `?shareId=${options.shareId}` : "";
-    const fileRes = await fetch(`/api/files/${fileId}${shareQuery}`, {
-      signal: options?.signal,
-    });
     const metaRes = await fetch(`/api/files/${fileId}/meta${shareQuery}`, {
       signal: options?.signal,
     });
 
-    if (!fileRes.ok) {
-      throw new UploadError(
-        `Failed to fetch file (${fileRes.status})`,
-        "SERVER_ERROR",
-        fileRes.status,
-      );
-    }
     if (!metaRes.ok) {
       throw new UploadError(
         `Failed to fetch file metadata (${metaRes.status})`,
@@ -267,7 +252,7 @@ export async function download(
     }
 
     const meta = await metaRes.json();
-    const { iv, encrypted_key, enc_name, iv_name } = meta;
+    const { encrypted_key, enc_name, iv_name } = meta;
 
     const rawKey = Uint8Array.from(atob(encrypted_key), (c) => c.charCodeAt(0));
     const fileKey = await crypto.subtle.importKey(
@@ -278,9 +263,6 @@ export async function download(
       ["decrypt"],
     );
 
-    const ivBytes = Uint8Array.from(atob(iv), (c) => c.charCodeAt(0));
-    const encData = await fileRes.arrayBuffer();
-    const fileBuffer = await decryptFile(encData, fileKey, ivBytes);
     const ivNameBytes = Uint8Array.from(atob(iv_name), (c) => c.charCodeAt(0));
     const encNameBytes = Uint8Array.from(atob(enc_name), (c) => c.charCodeAt(0));
     const decryptedName = await decryptText(
@@ -289,14 +271,14 @@ export async function download(
       ivNameBytes,
     );
 
-    const blob = new Blob([fileBuffer]);
-    const blobUrl = URL.createObjectURL(blob);
+    const ext = decryptedName.split('.').pop()?.toLowerCase() || "";
+    const cdnUrl = `https://cdn.arkivio.my.id/${fileId}${ext ? '.' + ext : ''}${shareQuery}`;
 
-    return { blobUrl, name: decryptedName };
+    return { blobUrl: cdnUrl, name: decryptedName };
   } catch (err) {
     if (err instanceof UploadError) throw err;
     throw new UploadError(
-      "Failed to download file",
+      "Failed to retrieve file",
       "NETWORK_ERROR",
       undefined,
       err,
