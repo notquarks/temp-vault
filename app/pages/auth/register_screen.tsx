@@ -20,14 +20,18 @@ export function RegisterScreen({}) {
 
     const { data, error } = await authClient.signUp.email({
       name: username,
-      username: username,
+      username: username.toLowerCase().replace(/[^a-z0-9_]/g, ""),
       email: email,
       password: password,
       image: "https://example.com/image.png",
     });
 
-    if (error) return;
-    else navigate("/login");
+    if (error) {
+      alert(`Registration failed: ${error.message}`);
+      return;
+    } else {
+      navigate("/login");
+    }
   };
 
   const togglePasswordVisibility = () => {
