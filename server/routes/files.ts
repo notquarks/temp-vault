@@ -12,7 +12,7 @@ import {
 } from "../../app/lib/crypto";
 import { db } from "../lib/db";
 import { fileKeys, filelist, shares } from "../db/schema";
-import { eq } from "../node_modules/drizzle-orm/index";
+import { eq } from "drizzle-orm";
 import { unwrapKey, wrappedKey } from "../lib/crypto";
 import { auth } from "../lib/auth";
 
