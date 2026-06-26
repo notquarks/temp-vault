@@ -22,7 +22,6 @@ app.use(
     limit: 100,
     standardHeaders: "draft-6",
     keyGenerator: (c) => {
-      // Use Cloudflare's native IP header
       const ip =
         c.req.header("cf-connecting-ip") ||
         c.req.header("x-forwarded-for") ||
