@@ -7,8 +7,7 @@ let _oldMasterKey: Buffer | null | undefined;
 
 function getMasterKey(): Buffer {
   if (!_masterKey) {
-    const raw =
-      process.env.MASTER_KEY || "arkivio-local-dev-key-change-in-production";
+    const raw = process.env.MASTER_KEY || "arkivio-temp-key-pls-change";
     _masterKey = createHash("sha256").update(raw).digest();
   }
   return _masterKey;
