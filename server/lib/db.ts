@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import * as schema from "../db/schema";
-import path from "path";
+import path from "node:path";
 
 let _db: ReturnType<typeof drizzle>;
 let _sqlite: ReturnType<typeof createClient>;
