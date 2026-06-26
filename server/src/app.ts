@@ -15,21 +15,25 @@ app.use(
   }),
 );
 
-app.use(
-  "/api/*",
-  rateLimiter({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
-    standardHeaders: "draft-6",
-    keyGenerator: (c) => {
-      const ip =
-        c.req.header("cf-connecting-ip") ||
-        c.req.header("x-forwarded-for") ||
-        "unknown-ip";
-      return ip.split(",")[0].trim();
-    },
-  }),
-);
+let limiter: ReturnType<typeof rateLimiter>;
+
+app.use("/api/*", async (c, next) => {
+  if (!limiter) {
+    limiter = rateLimiter({
+      windowMs: 15 * 60 * 1000,
+      limit: 100,
+      standardHeaders: "draft-6",
+      keyGenerator: (c) => {
+        const ip =
+          c.req.header("cf-connecting-ip") ||
+          c.req.header("x-forwarded-for") ||
+          "unknown-ip";
+        return ip.split(",")[0].trim();
+      },
+    });
+  }
+  return limiter(c, next);
+});
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
