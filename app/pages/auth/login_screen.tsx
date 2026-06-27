@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { authClient } from "~/lib/auth-client";
 
 export function LoginScreen({}) {
@@ -62,6 +62,13 @@ export function LoginScreen({}) {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+          <span className="text-sm font-light">
+            Don't have an account yet?{" "}
+            <Link className="underline" to="/register">
+              {" "}
+              Register{" "}
+            </Link>
+          </span>{" "}
           <button
             type="submit"
             className="mt-2 w-full bg-white px-2 py-1 font-rajdhani text-2xl font-extrabold text-black hover:cursor-pointer hover:bg-black hover:text-white hover:outline hover:outline-1 hover:outline-white"

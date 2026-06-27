@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import CustomCheckbox from "~/components/custom-checkbox";
 import { authClient } from "~/lib/auth-client";
 
@@ -90,6 +90,12 @@ export function RegisterScreen({}) {
               <CustomCheckbox onClick={togglePasswordVisibility} />
             </div>
           </div>
+          <span className="text-sm font-light">
+            Already have an account?{" "}
+            <Link className="underline" to="/login">
+              Login
+            </Link>
+          </span>
           <button
             type="submit"
             className="mt-2 w-full bg-white px-2 py-1 font-rajdhani text-2xl font-extrabold text-black hover:cursor-pointer hover:bg-black hover:text-white hover:outline hover:outline-1 hover:outline-white"
