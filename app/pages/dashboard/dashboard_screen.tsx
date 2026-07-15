@@ -1,24 +1,17 @@
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import ItemDetailed from "~/components/item-detailed";
-import UploadArea from "~/components/upload-area";
 import { authClient } from "~/lib/auth-client";
 import {
   getUserFiles,
-  download,
   createShareLink,
   deleteFile,
   togglePrivacy,
   type FileRecord,
 } from "~/lib/api";
 import { Image } from "lucide-react";
-import { decryptFile } from "~/lib/crypto";
 
-interface DashboardScreenProps {
-  propName: string;
-}
-
-export function DashboardScreen({ propName }: DashboardScreenProps) {
+export function DashboardScreen() {
   const Navigate = useNavigate();
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
@@ -50,14 +43,14 @@ export function DashboardScreen({ propName }: DashboardScreenProps) {
   };
 
   return (
-    <div>
-      <nav className="flex w-full justify-between bg-amber px-2 py-1 font-bitcount text-4xl leading-none font-semibold text-black">
+    <div className="min-h-dvh overflow-x-hidden bg-paper">
+      <nav className="flex min-h-14 w-full items-center justify-between gap-3 bg-amber px-3 py-2 font-bitcount text-2xl leading-none font-semibold text-black sm:px-4 sm:text-4xl">
         <button
           type="button"
           className="hover:cursor-pointer hover:bg-black hover:text-white hover:underline"
           onClick={() => Navigate("/")}
         >
-          <p>UPLOAD //</p>
+          <span>UPLOAD //</span>
         </button>
         <div>
           <button
@@ -77,13 +70,13 @@ export function DashboardScreen({ propName }: DashboardScreenProps) {
           </button>
         </div>
       </nav>
-      <main>
+      <main className="mx-auto w-full max-w-[96rem] pb-8">
         {files.length > 0 && (
-          <div className="mx-4 mt-4 mb-8">
-            <h2 className="mb-2 px-4 font-orbitron text-2xl font-extrabold tracking-tight">
+          <div className="mx-2 mt-4 mb-8 sm:mx-4">
+            <h2 className="mb-2 px-2 font-orbitron text-xl font-extrabold tracking-tight sm:px-4 sm:text-2xl">
               // FILES
             </h2>
-            <div className="grid grid-cols-12 border-b border-white/20 px-4 py-1 font-syne text-[10px] tracking-widest text-white/40 uppercase">
+            <div className="hidden grid-cols-12 border-b border-white/20 px-4 py-1 font-syne text-[10px] tracking-widest text-white/40 uppercase lg:grid">
               <div className="col-span-1 text-center">TYPE</div>
               <div className="col-span-5">NAME</div>
               <div className="col-span-2 text-center">FORMAT</div>
@@ -102,15 +95,22 @@ export function DashboardScreen({ propName }: DashboardScreenProps) {
                     ? `${(file.fileSize / 1048576).toFixed(1)} MB`
                     : `${(file.fileSize / 1024).toFixed(0)} KB`
                 }
-                datetime={formatDate(file.uploadedAt || file.createdAt)}
+                datetime={formatDate(file.uploadedAt)}
                 isPrivate={file.isPrivate}
                 onClick={() => Navigate(`/view/${file.id}`)}
                 onTogglePrivacy={async () => {
                   try {
-                    const newPrivacyStatus = await togglePrivacy(file.id, !file.isPrivate);
-                    setFiles(files.map((f) => 
-                      f.id === file.id ? { ...f, isPrivate: newPrivacyStatus } : f
-                    ));
+                    const newPrivacyStatus = await togglePrivacy(
+                      file.id,
+                      !file.isPrivate,
+                    );
+                    setFiles((current) =>
+                      current.map((f) =>
+                        f.id === file.id
+                          ? { ...f, isPrivate: newPrivacyStatus }
+                          : f,
+                      ),
+                    );
                   } catch (err: any) {
                     alert("Failed to toggle privacy: " + err.message);
                   }

@@ -63,11 +63,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="container mx-auto min-h-dvh px-4 py-10 sm:px-6 sm:py-16">
+      <h1 className="font-orbitron text-3xl font-bold sm:text-5xl">
+        {message}
+      </h1>
+      <p className="mt-3 max-w-2xl break-words">{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="mt-6 w-full overflow-x-auto p-3 text-xs sm:p-4 sm:text-sm">
           <code>{stack}</code>
         </pre>
       )}

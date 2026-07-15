@@ -17,15 +17,25 @@
   --font-spacemono: "Space Mono", monospace;
 
   --color-paper: #181816;
-  --color-amber: #E8481C;
-  --color-amber-bright: #F05830;
-  --color-parchment: #C8927A;
+  --color-amber: #e8481c;
+  --color-amber-bright: #f05830;
+  --color-parchment: #c8927a;
 }
 
 html,
 body {
+  min-width: 320px;
+  min-height: 100%;
+  overflow-x: hidden;
   background-color: #181816;
   color-scheme: dark;
+}
+
+button,
+a,
+input,
+label {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .marathon-grid {
@@ -34,4 +44,10 @@ body {
     linear-gradient(rgba(232, 72, 28, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(232, 72, 28, 0.06) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+@media (max-width: 639px) {
+  .marathon-grid {
+    background-size: 32px 32px;
+  }
 }

@@ -1,9 +1,15 @@
 import { useRef, useState, useCallback, useId } from "react";
 import { useNavigate } from "react-router";
-import { upload, UploadError, type UploadProgress } from "~/lib/api";
+import {
+  AUTHENTICATED_MAX_FILE_SIZE,
+  GUEST_MAX_FILE_SIZE,
+  upload,
+  UploadError,
+  type UploadProgress,
+} from "~/lib/api";
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
-const MAX_FILE_COUNT = 10;
+const AUTHENTICATED_MAX_FILE_COUNT = 10;
+const GUEST_MAX_FILE_COUNT = 3;
 
 type UploadStatus = "idle" | "queued" | "uploading" | "success" | "error";
 
@@ -19,6 +25,12 @@ interface QueuedFile {
 let fileIdCounter = 0;
 function nextFileId() {
   return `uf_${++fileIdCounter}_${Date.now()}`;
+}
+
+function formatFileSize(bytes: number) {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 interface UploadAreaProps {
@@ -38,46 +50,60 @@ export default function UploadArea({
   const abortRef = useRef<AbortController | null>(null);
   const inputId = useId();
   const navigate = useNavigate();
+  const maxFileSize = userId
+    ? AUTHENTICATED_MAX_FILE_SIZE
+    : GUEST_MAX_FILE_SIZE;
+  const maxFileCount = userId
+    ? AUTHENTICATED_MAX_FILE_COUNT
+    : GUEST_MAX_FILE_COUNT;
 
-  const addFiles = useCallback((incoming: File[]) => {
-    setOverallError(null);
-    setOverallStatus("queued");
-    setQueue((prev) => {
-      const existingKeys = new Set(
-        prev.map((q) => `${q.file.name}::${q.file.size}`),
-      );
-      const valid: QueuedFile[] = [];
-      const errors: string[] = [];
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      setOverallError(null);
+      setOverallStatus("queued");
+      setQueue((prev) => {
+        const existingKeys = new Set(
+          prev.map((q) => `${q.file.name}::${q.file.size}`),
+        );
+        const valid: QueuedFile[] = [];
+        const errors: string[] = [];
 
-      for (const file of incoming) {
-        const key = `${file.name}::${file.size}`;
-        if (existingKeys.has(key)) {
-          errors.push(`"${file.name}" is already queued`);
-          continue;
+        for (const file of incoming) {
+          const key = `${file.name}::${file.size}`;
+          if (existingKeys.has(key)) {
+            errors.push(`"${file.name}" is already queued`);
+            continue;
+          }
+          existingKeys.add(key);
+          if (file.size === 0) {
+            errors.push(`"${file.name}" is empty`);
+            continue;
+          }
+          if (file.size > maxFileSize) {
+            errors.push(
+              `"${file.name}" exceeds ${maxFileSize / 1024 / 1024} MB (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+            );
+            continue;
+          }
+          valid.push({
+            file,
+            id: nextFileId(),
+            status: "pending",
+            progress: 0,
+          });
         }
-        existingKeys.add(key);
-        if (file.size === 0) {
-          errors.push(`"${file.name}" is empty`);
-          continue;
-        }
-        if (file.size > MAX_FILE_SIZE) {
-          errors.push(
-            `"${file.name}" exceeds 50 MB (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
-          );
-          continue;
-        }
-        valid.push({ file, id: nextFileId(), status: "pending", progress: 0 });
-      }
 
-      const total = prev.length + valid.length;
-      if (total > MAX_FILE_COUNT) {
-        valid.splice(valid.length - (total - MAX_FILE_COUNT));
-        errors.push(`Max ${MAX_FILE_COUNT} files — excess dropped`);
-      }
-      if (errors.length > 0) setOverallError(errors.join(". "));
-      return [...prev, ...valid];
-    });
-  }, []);
+        const total = prev.length + valid.length;
+        if (total > maxFileCount) {
+          valid.splice(valid.length - (total - maxFileCount));
+          errors.push(`Max ${maxFileCount} files — excess dropped`);
+        }
+        if (errors.length > 0) setOverallError(errors.join(". "));
+        return [...prev, ...valid];
+      });
+    },
+    [maxFileCount, maxFileSize],
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -112,11 +138,6 @@ export default function UploadArea({
   );
 
   const startUpload = useCallback(async () => {
-    if (!userId) {
-      setOverallError("Log in to upload files");
-      setOverallStatus("error");
-      return;
-    }
     const pending = queue.filter((q) => q.status === "pending");
     if (pending.length === 0) return;
 
@@ -232,7 +253,7 @@ export default function UploadArea({
 
   return (
     <section
-      className="mx-auto flex h-3/5 w-full max-w-4xl flex-col items-center"
+      className="mx-auto flex min-h-56 w-full max-w-4xl flex-1 flex-col items-center sm:min-h-64 sm:max-h-[34rem]"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -252,7 +273,7 @@ export default function UploadArea({
       <label
         htmlFor={inputId}
         className={[
-          "relative flex h-full w-full flex-col items-center justify-center select-none",
+          "relative flex h-full min-h-56 w-full flex-1 flex-col items-center justify-center select-none sm:min-h-64",
           "border bg-paper transition-[border-color,box-shadow] duration-200 ease-out",
           "outline-2 outline-offset-2 outline-amber focus-visible:outline",
           isUploading ? "cursor-not-allowed" : "cursor-pointer",
@@ -316,14 +337,14 @@ export default function UploadArea({
 
       {showActionBar && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-paper/90 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-paper/90 p-3 backdrop-blur-md sm:p-6"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-label="Upload progress"
         >
-          <div className="mx-auto w-full max-w-lg border border-amber/25 bg-paper shadow-2xl">
-            <div className="flex items-center justify-between border-b border-amber bg-amber px-5 py-3">
+          <div className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden border border-amber/25 bg-paper shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+            <div className="flex shrink-0 items-center justify-between border-b border-amber bg-amber px-4 py-3 sm:px-5">
               <span className="font-rajdhani text-sm font-bold tracking-[0.12em] text-paper uppercase">
                 {isUploading
                   ? `UPLOADING // ${doneCount + uploadingCount}/${queue.length}`
@@ -344,12 +365,12 @@ export default function UploadArea({
             </div>
 
             {queue.length > 0 && (
-              <ul className="flex max-h-60 list-none flex-col overflow-y-auto">
+              <ul className="flex min-h-0 max-h-[50dvh] list-none flex-col overflow-y-auto sm:max-h-60">
                 {queue.map((item, index) => (
                   <li
                     key={item.id}
                     className={[
-                      "flex items-center gap-3 px-5 py-3 font-ibmplex text-base transition-colors duration-100",
+                      "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-4 py-3 font-ibmplex text-sm transition-colors duration-100 sm:flex sm:gap-3 sm:px-5 sm:text-base",
                       index < queue.length - 1 ? "border-b border-amber/6" : "",
                       item.status === "pending" && "text-parchment/80",
                       item.status === "uploading" && "text-amber",
@@ -374,7 +395,7 @@ export default function UploadArea({
                     />
 
                     {item.status === "uploading" && (
-                      <div className="h-px w-16 shrink-0 bg-amber/10">
+                      <div className="col-start-2 row-start-2 h-px w-full bg-amber/10 sm:col-auto sm:h-px sm:w-16 sm:shrink-0">
                         <div
                           className="h-full bg-amber transition-[width] duration-200 ease-out"
                           style={{ width: `${item.progress}%` }}
@@ -387,12 +408,12 @@ export default function UploadArea({
                       </div>
                     )}
 
-                    <span className="min-w-0 flex-1 truncate tracking-[0.03em]">
+                    <span className="min-w-0 truncate tracking-[0.03em] sm:flex-1">
                       {item.file.name}
                     </span>
 
-                    <span className="shrink-0 text-sm tracking-[0.06em] text-parchment/80 tabular-nums">
-                      {(item.file.size / 1024).toFixed(0)} KB
+                    <span className="shrink-0 text-xs tracking-[0.04em] text-parchment/80 tabular-nums sm:text-sm sm:tracking-[0.06em]">
+                      {formatFileSize(item.file.size)}
                     </span>
 
                     {item.status === "done" && (
@@ -402,7 +423,7 @@ export default function UploadArea({
                           e.stopPropagation();
                           navigate(`/view/${item.serverFileId}`);
                         }}
-                        className="shrink-0 border border-amber/60 px-2.5 py-1 font-rajdhani text-xs font-bold tracking-[0.1em] text-amber uppercase transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber"
+                        className="col-span-3 mt-1 justify-self-end border border-amber/60 px-2.5 py-1 font-rajdhani text-xs font-bold tracking-[0.1em] text-amber uppercase transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber sm:col-auto sm:mt-0 sm:shrink-0"
                         aria-label={`View ${item.file.name}`}
                       >
                         VIEW →
@@ -411,7 +432,7 @@ export default function UploadArea({
 
                     {item.status === "failed" && (
                       <span
-                        className="shrink-0 text-xs tracking-[0.06em] text-red-400"
+                        className="col-start-2 row-start-2 shrink-0 text-xs tracking-[0.06em] text-red-400 sm:col-auto sm:row-auto"
                         title={item.error}
                         aria-label={item.error || "Upload failed"}
                       >
@@ -420,7 +441,7 @@ export default function UploadArea({
                     )}
 
                     {item.status === "uploading" && (
-                      <span className="shrink-0 text-xs font-bold text-amber tabular-nums">
+                      <span className="col-start-3 row-start-2 shrink-0 text-xs font-bold text-amber tabular-nums sm:col-auto sm:row-auto">
                         {item.progress}%
                       </span>
                     )}
@@ -430,7 +451,7 @@ export default function UploadArea({
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center text-parchment/80 transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:font-bold hover:text-black focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber"
+                        className="col-start-3 row-start-2 -mr-1 flex h-6 w-6 shrink-0 items-center justify-center justify-self-end text-parchment/80 transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:font-bold hover:text-black focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber sm:col-auto sm:row-auto"
                         aria-label={`Remove ${item.file.name}`}
                       >
                         ✕
@@ -444,38 +465,33 @@ export default function UploadArea({
             {overallError && (
               <div
                 role="alert"
-                className="border-t border-red-400/20 px-5 py-2.5 font-ibmplex text-xs tracking-[0.06em] text-red-400"
+                className="max-h-24 overflow-y-auto border-t border-red-400/20 px-4 py-2.5 font-ibmplex text-xs leading-relaxed tracking-[0.04em] text-red-400 sm:px-5 sm:tracking-[0.06em]"
               >
                 {overallError}
               </div>
             )}
 
-            <div className="flex items-center gap-px border-t border-amber/8">
+            <div className="flex shrink-0 flex-col items-stretch gap-px border-t border-amber/8 sm:flex-row sm:items-center">
               {!isUploading && (
                 <>
-                  {!userId ? (
-                    <span className="w-full px-5 py-3.5 text-center font-ibmplex text-sm tracking-[0.08em] text-red-400">
-                      LOG IN TO UPLOAD //
-                    </span>
-                  ) : (
-                    (overallStatus === "queued" || overallStatus === "error") &&
+                  {(overallStatus === "queued" || overallStatus === "error") &&
                     pendingCount > 0 && (
                       <button
                         type="button"
                         onClick={startUpload}
-                        className="flex-1 bg-amber py-4 font-rajdhani text-xl font-bold tracking-[0.15em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright"
+                        className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
                       >
-                        UPLOAD {pendingCount > 0 ? `// ${pendingCount}` : ""}
+                        {userId ? "UPLOAD" : "UPLOAD AS GUEST"}{" "}
+                        {pendingCount > 0 ? `// ${pendingCount}` : ""}
                         <span className="ml-4 inline-block">→</span>
                       </button>
-                    )
-                  )}
+                    )}
 
                   {failedCount > 0 && (
                     <button
                       type="button"
                       onClick={retryFailed}
-                      className="flex-1 bg-amber py-4 font-rajdhani text-xl font-bold tracking-[0.15em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright"
+                      className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
                     >
                       RETRY // {failedCount}
                     </button>
@@ -486,7 +502,7 @@ export default function UploadArea({
                       <button
                         type="button"
                         onClick={clearQueue}
-                        className="m-2 border-l border-amber/8 px-6 py-4 font-rajdhani text-sm tracking-[0.10em] text-parchment/50 uppercase transition-colors duration-100 hover:cursor-pointer hover:font-semibold hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber"
+                        className="border-t border-amber/8 px-6 py-3 font-rajdhani text-sm tracking-[0.1em] text-parchment/50 uppercase transition-colors duration-100 hover:cursor-pointer hover:font-semibold hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber sm:m-2 sm:border-t-0 sm:border-l sm:py-4"
                       >
                         CLEAR
                       </button>
@@ -508,7 +524,7 @@ export default function UploadArea({
                 <button
                   type="button"
                   onClick={clearQueue}
-                  className="flex-1 bg-amber py-4 font-rajdhani text-xl font-bold tracking-[0.15em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright"
+                  className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
                 >
                   UPLOAD MORE →
                 </button>

@@ -58,7 +58,7 @@ export async function decryptFile(
 export async function decryptText(
   encData: ArrayBuffer,
   key: CryptoKey,
-  iv: Uint8Array,
+  iv: Uint8Array<ArrayBuffer>,
 ): Promise<string> {
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },

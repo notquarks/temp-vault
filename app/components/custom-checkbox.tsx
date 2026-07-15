@@ -29,14 +29,19 @@ const CustomCheckbox = ({
   };
 
   return (
-    <label className={`cursor-pointer flex ${className}`}>
+    <label
+      className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center ${className}`}
+    >
       <input
         type="checkbox"
         checked={isChecked}
         onChange={handleChange}
-        className="absolute opacity-0"
+        className="sr-only"
+        aria-label={isChecked ? "Hide password" : "Show password"}
       />
-      <span>{isChecked ? icon : uncheckedIcon}</span>
+      <span className="flex items-center justify-center" aria-hidden="true">
+        {isChecked ? icon : uncheckedIcon}
+      </span>
     </label>
   );
 };
