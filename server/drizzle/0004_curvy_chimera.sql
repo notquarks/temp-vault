@@ -1,0 +1,1 @@
+ALTER TABLE `files` ADD `string` text NOT NULL;

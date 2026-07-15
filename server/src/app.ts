@@ -4,6 +4,7 @@ import { rateLimiter } from "hono-rate-limiter";
 import { auth } from "../lib/auth";
 import { cleanupOldFiles } from "../lib/cleanup";
 import routes from "../routes";
+import { clientIp } from "../lib/guest-security";
 
 const app = new Hono();
 
@@ -29,13 +30,7 @@ app.use("/api/*", async (c, next) => {
       windowMs: 15 * 60 * 1000,
       limit: 100,
       standardHeaders: "draft-6",
-      keyGenerator: (c) => {
-        const ip =
-          c.req.header("cf-connecting-ip") ||
-          c.req.header("x-forwarded-for") ||
-          "unknown-ip";
-        return ip.split(",")[0].trim();
-      },
+      keyGenerator: (c) => clientIp(c) || "unresolved-ip",
     });
   }
   return limiter(c, next);

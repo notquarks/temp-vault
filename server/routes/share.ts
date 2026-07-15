@@ -10,7 +10,7 @@ share.post("/create", async (c) => {
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   });
-  
+
   if (!session) {
     return c.json({ error: "Unauthorized" }, 401);
   }
@@ -39,8 +39,12 @@ share.post("/create", async (c) => {
     .then((r) => r[0]);
 
   if (!fileRow) return c.json({ error: "File not found" }, 404);
-  if (fileRow.ownerId !== session.user.id) return c.json({ error: "Forbidden" }, 403);
-  if (fileRow.private === 1) return c.json({ error: "Cannot share a private file" }, 400);
+  if (fileRow.isGuest)
+    return c.json({ error: "Guest uploads cannot create share links" }, 403);
+  if (fileRow.ownerId !== session.user.id)
+    return c.json({ error: "Forbidden" }, 403);
+  if (fileRow.private === 1)
+    return c.json({ error: "Cannot share a private file" }, 400);
 
   const shareId = crypto.randomUUID();
   const shareKey = crypto.randomUUID();
@@ -73,9 +77,15 @@ share.get("/:id", async (c) => {
     .then((r) => r[0]);
 
   if (!fileRow) return c.json({ error: "File not found" }, 404);
-  
+
   if (fileRow.private === 1) {
-    return c.json({ error: "This file is now private and cannot be accessed via share link." }, 403);
+    return c.json(
+      {
+        error:
+          "This file is now private and cannot be accessed via share link.",
+      },
+      403,
+    );
   }
 
   return c.json({ fileId: shareRow.fileId });

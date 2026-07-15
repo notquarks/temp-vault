@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -67,9 +73,31 @@ export const filelist = sqliteTable("files", {
   private: integer("is_private").notNull(),
   type: text("file_type").notNull(),
   size: text("string").notNull(),
+  isGuest: integer("is_guest", { mode: "boolean" }).notNull().default(false),
+  guestAccessHash: text("guest_access_hash"),
+  guestIpHash: text("guest_ip_hash"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+export const guestUploadEvents = sqliteTable(
+  "guest_upload_events",
+  {
+    id: text("id").primaryKey(),
+    ipHash: text("ip_hash").notNull(),
+    challengeHash: text("challenge_hash").notNull(),
+    size: integer("size_bytes").notNull().default(0),
+    status: text("status").notNull().default("started"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("guest_upload_events_ip_created_idx").on(
+      table.ipHash,
+      table.createdAt,
+    ),
+    uniqueIndex("guest_upload_events_challenge_idx").on(table.challengeHash),
+  ],
+);
 
 export const fileKeys = sqliteTable("file_keys", {
   fileId: text("file_id")
