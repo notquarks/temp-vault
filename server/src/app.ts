@@ -8,19 +8,35 @@ import { clientIp } from "../lib/guest-security";
 
 const app = new Hono();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  process.env.VITE_BACKEND_URL,
+  process.env.VITE_APP_URL,
+].filter((value): value is string => Boolean(value));
+
 app.use(
   "/api/auth/*",
   cors({
-    origin: (origin) => {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        process.env.VITE_BACKEND_URL,
-      ].filter(Boolean);
-      return allowedOrigins.includes(origin) ? origin : "http://localhost:5173";
-    },
+    origin: (origin) =>
+      allowedOrigins.includes(origin) ? origin : "",
     credentials: true,
   }),
 );
+
+app.use("/api/*", async (c, next) => {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(c.req.method)) {
+    const origin = c.req.header("origin");
+    const fetchSite = c.req.header("sec-fetch-site");
+    if (
+      (origin && !allowedOrigins.includes(origin)) ||
+      fetchSite === "cross-site"
+    ) {
+      return c.json({ error: "Cross-site mutation rejected" }, 403);
+    }
+  }
+  return next();
+});
 
 let limiter: ReturnType<typeof rateLimiter>;
 
@@ -30,15 +46,15 @@ app.use("/api/*", async (c, next) => {
       windowMs: 15 * 60 * 1000,
       limit: 100,
       standardHeaders: "draft-6",
-      keyGenerator: (c) => clientIp(c) || "unresolved-ip",
+      keyGenerator: (c) => clientIp(c as any) || "unresolved-ip",
     });
   }
-  return limiter(c, next);
+  return (limiter as any)(c, next);
 });
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw) as any);
 
-app.route("/api", routes);
+app.route("/api", routes as any);
 
 app.get("/api/health", (c) => c.json({ status: "ok" }));
 

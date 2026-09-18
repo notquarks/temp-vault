@@ -1,37 +1,37 @@
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import ItemDetailed from "~/components/item-detailed";
+import { ConfirmDialog, useToast } from "~/components/feedback";
 import { authClient } from "~/lib/auth-client";
-import {
-  getUserFiles,
-  createShareLink,
-  deleteFile,
-  togglePrivacy,
-  type FileRecord,
-} from "~/lib/api";
-import { Image } from "lucide-react";
+import { getUserFiles, createShareLink, deleteFile, downloadFile, togglePrivacy, type FileRecord } from "~/lib/api";
 
 export function DashboardScreen() {
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
+  const toast = useToast();
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
   const [files, setFiles] = useState<FileRecord[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<FileRecord | null>(null);
 
   const loadFiles = async () => {
     if (!userId) return;
     try {
       const data = await getUserFiles(userId);
       setFiles(data);
-    } catch {}
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
   };
 
   useEffect(() => {
     const verify = async () => {
       const current = await authClient.getSession();
-      if (!current.data) Navigate("/login");
+      if (!current.data) navigate("/login");
     };
     verify();
-  }, [Navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     if (userId) loadFiles();
@@ -42,116 +42,138 @@ export function DashboardScreen() {
     return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   };
 
+  const handleView = (id: string) => {
+    navigate(`/view/${id}`);
+  };
+
+  const handleDownload = async (id: string) => {
+    try {
+      await downloadFile(id);
+    } catch {
+      toast.error("Download failed", "Could not retrieve this item. Try again.");
+    }
+  };
+
+  const handleShare = async (id: string) => {
+    const target = files.find((f) => f.id === id);
+    if (!target) return;
+    try {
+      const url = await createShareLink(id);
+      await navigator.clipboard.writeText(url);
+      toast.success("Share link copied", target.isPrivate ? "Heads up — this item is private." : "Anyone with this link can view the file.");
+    } catch {
+      toast.error("Failed to share", "Could not create the share link. Try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setPendingDelete(null);
+    try {
+      await deleteFile(target.id);
+      toast.success("Item deleted", `${target.decryptedName || "File"} was removed from the vault.`);
+      loadFiles();
+    } catch {
+      toast.error("Delete failed", "The item is still in the vault. Try again.");
+    }
+  };
+
+  const handleTogglePrivacy = async (id: string, current: boolean) => {
+    try {
+      await togglePrivacy(id, !current);
+      loadFiles();
+    } catch {
+      toast.error("Privacy update failed", "Could not change the item's visibility. Try again.");
+    }
+  };
+
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-paper">
-      <nav className="flex min-h-14 w-full items-center justify-between gap-3 bg-amber px-3 py-2 font-bitcount text-2xl leading-none font-semibold text-black sm:px-4 sm:text-4xl">
+    <div className="min-h-dvh flex flex-col bg-paper text-bone selection:bg-bone selection:text-paper">
+      <header className="border-b-2 border-line h-14 sm:h-16 px-5 sm:px-6 flex items-center justify-between shrink-0 animate-brutal">
+        <button type="button" onClick={() => navigate("/")} className="font-syne text-[1.05rem] sm:text-lg font-extrabold tracking-[0.13em] uppercase leading-none hover:opacity-70 transition-opacity">
+          ARKIVIO // DASHBOARD
+        </button>
         <button
           type="button"
-          className="hover:cursor-pointer hover:bg-black hover:text-white hover:underline"
-          onClick={() => Navigate("/")}
+          onClick={async () => {
+            await authClient.signOut({
+              fetchOptions: {
+                onSuccess: () => navigate("/login"),
+              },
+            });
+          }}
+          className="btn-hud-outline btn-hud-destructive px-4 min-h-[44px]"
         >
-          <span>UPLOAD //</span>
+          Sign Out
         </button>
-        <div>
-          <button
-            type="button"
-            className="hover:cursor-pointer hover:bg-black hover:text-white hover:underline"
-            onClick={async () =>
-              await authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    Navigate("/login");
-                  },
-                },
-              })
-            }
-          >
-            LOGOUT
+      </header>
+
+      <main className="flex-1 p-5 sm:p-8 lg:p-10 max-w-6xl mx-auto w-full">
+        <div className="flex items-center justify-between mb-6 gap-3">
+          <h1 className="font-syne text-xl font-bold tracking-wider uppercase">YOUR VAULT ITEMS ({files.length})</h1>
+          <button onClick={() => navigate("/")} className="btn-hud-primary btn-hud-constructive">
+            + UPLOAD NEW
           </button>
         </div>
-      </nav>
-      <main className="mx-auto w-full max-w-[96rem] pb-8">
-        {files.length > 0 && (
-          <div className="mx-2 mt-4 mb-8 sm:mx-4">
-            <h2 className="mb-2 px-2 font-orbitron text-xl font-extrabold tracking-tight sm:px-4 sm:text-2xl">
-              // FILES
-            </h2>
-            <div className="hidden grid-cols-12 border-b border-white/20 px-4 py-1 font-syne text-[10px] tracking-widest text-white/40 uppercase lg:grid">
-              <div className="col-span-1 text-center">TYPE</div>
-              <div className="col-span-5">NAME</div>
-              <div className="col-span-2 text-center">FORMAT</div>
-              <div className="col-span-1 text-center">SIZE</div>
-              <div className="col-span-2 text-center">DATE</div>
-              <div className="col-span-1 text-center">ACTION</div>
-            </div>
+
+        {loadError ? (
+          <div className="bracket-frame border-2 border-line-strong bg-panel p-12 text-center shadow-brutal">
+            <span className="bracket bracket-tl" aria-hidden="true" />
+            <span className="bracket bracket-tr" aria-hidden="true" />
+            <span className="bracket bracket-bl" aria-hidden="true" />
+            <span className="bracket bracket-br" aria-hidden="true" />
+            <p className="font-mono text-sm text-danger mb-4">[VAULT UNREACHABLE] COULD NOT LOAD YOUR ITEMS.</p>
+            <button onClick={loadFiles} className="btn-hud-outline btn-hud-info">RETRY</button>
+          </div>
+        ) : files.length === 0 ? (
+          <div className="bracket-frame border-2 border-line-strong bg-panel p-12 text-center shadow-brutal animate-brutal">
+            <span className="bracket bracket-tl" aria-hidden="true" />
+            <span className="bracket bracket-tr" aria-hidden="true" />
+            <span className="bracket bracket-bl" aria-hidden="true" />
+            <span className="bracket bracket-br" aria-hidden="true" />
+            <p className="font-mono text-sm text-muted mb-4">NO VAULT ITEMS STORED</p>
+            <button onClick={() => navigate("/")} className="btn-hud-primary btn-hud-constructive">
+              UPLOAD YOUR FIRST FILE
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
             {files.map((file) => (
               <ItemDetailed
                 key={file.id}
-                icon={<Image size={18} />}
-                filename={file.decryptedName || file.encName}
-                type={file.fileType || "unknown"}
-                size={
-                  file.fileSize > 1048576
-                    ? `${(file.fileSize / 1048576).toFixed(1)} MB`
-                    : `${(file.fileSize / 1024).toFixed(0)} KB`
-                }
-                datetime={formatDate(file.uploadedAt)}
-                isPrivate={file.isPrivate}
-                onClick={() => Navigate(`/view/${file.id}`)}
-                onTogglePrivacy={async () => {
-                  try {
-                    const newPrivacyStatus = await togglePrivacy(
-                      file.id,
-                      !file.isPrivate,
-                    );
-                    setFiles((current) =>
-                      current.map((f) =>
-                        f.id === file.id
-                          ? { ...f, isPrivate: newPrivacyStatus }
-                          : f,
-                      ),
-                    );
-                  } catch (err: any) {
-                    alert("Failed to toggle privacy: " + err.message);
-                  }
+                file={file}
+                formatDate={formatDate}
+                onView={handleView}
+                onDownload={handleDownload}
+                onDelete={(id) => {
+                  const target = files.find((f) => f.id === id);
+                  if (target) setPendingDelete(target);
                 }}
-                onShare={async () => {
-                  try {
-                    const rawKey = Uint8Array.from(
-                      atob(file.encryptedKey),
-                      (c) => c.charCodeAt(0),
-                    );
-                    const fileKey = await crypto.subtle.importKey(
-                      "raw",
-                      rawKey,
-                      { name: "AES-GCM", length: 256 },
-                      true,
-                      ["encrypt", "decrypt"],
-                    );
-                    const link = await createShareLink(file.id, fileKey);
-                    await navigator.clipboard.writeText(link);
-                    alert("Share link copied to clipboard!");
-                  } catch (err) {
-                    console.error(err);
-                    alert("Failed to create share link");
-                  }
-                }}
-                onDelete={async () => {
-                  if (!confirm("Are you sure you want to delete this file?"))
-                    return;
-                  try {
-                    await deleteFile(file.id);
-                    loadFiles();
-                  } catch (err) {
-                    console.error(err);
-                    alert("Failed to delete file");
-                  }
-                }}
+                onShare={handleShare}
+                onTogglePrivacy={handleTogglePrivacy}
               />
             ))}
           </div>
         )}
       </main>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this item?"
+        message={`"${pendingDelete?.decryptedName || "This file"}" will be permanently removed from the vault. This cannot be undone.`}
+        confirmLabel="DELETE"
+        destructive
+        onConfirm={handleDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+
+      <footer className="border-t-2 border-line px-5 sm:px-6 h-10 flex items-center justify-between shrink-0">
+        <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted">© 2026 ARKIVIO</span>
+        <a href="https://github.com/notquarks/temp-vault" target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted hover:text-bone underline decoration-white/20 underline-offset-4">
+          GITHUB
+        </a>
+      </footer>
     </div>
   );
 }

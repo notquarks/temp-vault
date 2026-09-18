@@ -11,6 +11,7 @@ export async function cleanupOldFiles() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const staleReservationCutoff = new Date(Date.now() - 60 * 60 * 1000);
 
   try {
     const oldFiles = await db
@@ -25,7 +26,6 @@ export async function cleanupOldFiles() {
 
     if (oldFiles.length === 0) {
       console.log("[CLEANUP TASK] No old files to delete.");
-      return;
     }
 
     let deletedCount = 0;
@@ -49,9 +49,19 @@ export async function cleanupOldFiles() {
     console.log(
       `[CLEANUP TASK] Successfully removed ${deletedCount} expired files.`,
     );
-    await db
-      .delete(guestUploadEvents)
-      .where(lt(guestUploadEvents.createdAt, thirtyDaysAgo));
+    await db.delete(guestUploadEvents).where(
+      or(
+        lt(guestUploadEvents.createdAt, thirtyDaysAgo),
+        and(
+          lt(guestUploadEvents.createdAt, staleReservationCutoff),
+          eq(guestUploadEvents.status, "started"),
+        ),
+        and(
+          lt(guestUploadEvents.createdAt, staleReservationCutoff),
+          eq(guestUploadEvents.status, "reserved"),
+        ),
+      ),
+    );
   } catch (err) {
     console.error("[CLEANUP TASK] Job failed:", err);
   }

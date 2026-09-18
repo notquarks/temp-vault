@@ -3,9 +3,11 @@ import { startCleanupCron } from "../lib/cleanup";
 
 startCleanupCron();
 
+const port = Number(process.env.PORT || 3005);
+
 Bun.serve({
   fetch: app.fetch,
-  port: 3000,
+  port,
 });
 
-console.log("Arkivio server running on http://localhost:3000");
+console.log(`Arkivio server running on http://localhost:${port}`);

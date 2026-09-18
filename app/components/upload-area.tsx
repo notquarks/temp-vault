@@ -1,18 +1,19 @@
 import { useRef, useState, useCallback, useId } from "react";
-import { useNavigate } from "react-router";
+import { Download, Eye } from "lucide-react";
 import {
   AUTHENTICATED_MAX_FILE_SIZE,
   GUEST_MAX_FILE_SIZE,
+  createShareLink,
+  downloadFile,
   upload,
   UploadError,
-  type UploadProgress,
 } from "~/lib/api";
+import { NoticeDialog, useToast } from "./feedback";
 
 const AUTHENTICATED_MAX_FILE_COUNT = 10;
 const GUEST_MAX_FILE_COUNT = 3;
 
 type UploadStatus = "idle" | "queued" | "uploading" | "success" | "error";
-
 interface QueuedFile {
   file: File;
   id: string;
@@ -21,134 +22,97 @@ interface QueuedFile {
   progress: number;
   serverFileId?: string;
 }
-
 let fileIdCounter = 0;
 function nextFileId() {
   return `uf_${++fileIdCounter}_${Date.now()}`;
 }
-
 function formatFileSize(bytes: number) {
   return bytes >= 1024 * 1024
     ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-interface UploadAreaProps {
-  userId?: string;
-  onUploadComplete?: (results: { fileName: string; fileId: string }[]) => void;
-}
-
 export default function UploadArea({
   userId,
   onUploadComplete,
-}: UploadAreaProps) {
-  const hiddenInputRef = useRef<HTMLInputElement>(null);
+  onNeedAccount,
+  onView,
+  onDownload,
+}: {
+  userId?: string;
+  onUploadComplete?: (r: { fileName: string; fileId: string }[]) => void;
+  onNeedAccount?: () => void;
+  onView?: (fileId: string) => void;
+  onDownload?: (fileId: string) => Promise<void> | void;
+}) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [overallStatus, setOverallStatus] = useState<UploadStatus>("idle");
-  const [overallError, setOverallError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [sizeWarning, setSizeWarning] = useState<{
+    files: string[];
+    limitMB: number;
+  } | null>(null);
   const inputId = useId();
-  const navigate = useNavigate();
+  const toast = useToast();
+  const abortRef = useRef<AbortController | null>(null);
+
   const maxFileSize = userId
     ? AUTHENTICATED_MAX_FILE_SIZE
     : GUEST_MAX_FILE_SIZE;
   const maxFileCount = userId
     ? AUTHENTICATED_MAX_FILE_COUNT
     : GUEST_MAX_FILE_COUNT;
+  const uploadHint = userId
+    ? `MAX ${Math.round(maxFileSize / (1024 * 1024))} MB / FILE • ${maxFileCount}-FILE QUEUE`
+    : `MAX ${Math.round(maxFileSize / (1024 * 1024))} MB / FILE • 25 MB DAILY TOTAL`;
 
-  const addFiles = useCallback(
-    (incoming: File[]) => {
-      setOverallError(null);
-      setOverallStatus("queued");
+  const handleFilesAdded = useCallback(
+    (newFiles: File[]) => {
+      const oversized: string[] = [];
       setQueue((prev) => {
-        const existingKeys = new Set(
-          prev.map((q) => `${q.file.name}::${q.file.size}`),
-        );
-        const valid: QueuedFile[] = [];
-        const errors: string[] = [];
-
-        for (const file of incoming) {
-          const key = `${file.name}::${file.size}`;
-          if (existingKeys.has(key)) {
-            errors.push(`"${file.name}" is already queued`);
-            continue;
+        const accepted = newFiles.filter((f) => {
+          if (f.size > maxFileSize) {
+            oversized.push(f.name);
+            return false;
           }
-          existingKeys.add(key);
-          if (file.size === 0) {
-            errors.push(`"${file.name}" is empty`);
-            continue;
-          }
-          if (file.size > maxFileSize) {
-            errors.push(
-              `"${file.name}" exceeds ${maxFileSize / 1024 / 1024} MB (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
-            );
-            continue;
-          }
-          valid.push({
-            file,
-            id: nextFileId(),
-            status: "pending",
-            progress: 0,
+          return true;
+        });
+        if (oversized.length)
+          setSizeWarning({
+            files: oversized,
+            limitMB: Math.round(maxFileSize / (1024 * 1024)),
           });
-        }
-
-        const total = prev.length + valid.length;
-        if (total > maxFileCount) {
-          valid.splice(valid.length - (total - maxFileCount));
-          errors.push(`Max ${maxFileCount} files — excess dropped`);
-        }
-        if (errors.length > 0) setOverallError(errors.join(". "));
-        return [...prev, ...valid];
+        const remaining = maxFileCount - prev.length;
+        if (remaining <= 0) return prev;
+        const toAdd = accepted.slice(0, remaining).map((file) => ({
+          file,
+          id: nextFileId(),
+          status: "pending" as const,
+          progress: 0,
+        }));
+        return [...prev, ...toAdd];
       });
+      setOverallStatus("queued");
     },
     [maxFileCount, maxFileSize],
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  }, []);
-
   const isUploading = overallStatus === "uploading";
+  const pending = queue.filter((q) => q.status === "pending").length;
+  const uploadingCount = queue.filter((q) => q.status === "uploading").length;
+  const doneCount = queue.filter((q) => q.status === "done").length;
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      if (isUploading) return;
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length > 0) addFiles(files);
-    },
-    [addFiles, isUploading],
-  );
-
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selected = Array.from(e.target.files || []);
-      if (selected.length > 0) addFiles(selected);
-      e.target.value = "";
-    },
-    [addFiles],
-  );
-
-  const startUpload = useCallback(async () => {
-    const pending = queue.filter((q) => q.status === "pending");
-    if (pending.length === 0) return;
-
+  const startUploads = useCallback(async () => {
+    if (!queue.length || isUploading) return;
     setOverallStatus("uploading");
-    setOverallError(null);
     const controller = new AbortController();
     abortRef.current = controller;
-    const completed: { fileName: string; fileId: string }[] = [];
+    const pendingList = queue.filter(
+      (q) => q.status === "pending" || q.status === "failed",
+    );
     let anyFailed = false;
-
-    for (const item of pending) {
+    const completed: { fileName: string; fileId: string }[] = [];
+    for (const item of pendingList) {
       if (controller.signal.aborted) break;
       setQueue((prev) =>
         prev.map((q) =>
@@ -160,13 +124,12 @@ export default function UploadArea({
       try {
         const result = await upload(item.file, userId, {
           signal: controller.signal,
-          onProgress: (p: UploadProgress) => {
+          onProgress: (p) =>
             setQueue((prev) =>
               prev.map((q) =>
                 q.id === item.id ? { ...q, progress: p.percent } : q,
               ),
-            );
-          },
+            ),
         });
         setQueue((prev) =>
           prev.map((q) =>
@@ -183,356 +146,285 @@ export default function UploadArea({
         completed.push({ fileName: item.file.name, fileId: result.fileId });
       } catch (err) {
         anyFailed = true;
-        const message =
-          err instanceof UploadError ? err.message : "Upload failed";
+        const msg = err instanceof UploadError ? err.message : "Upload failed";
         setQueue((prev) =>
           prev.map((q) =>
             q.id === item.id
-              ? { ...q, status: "failed" as const, error: message }
+              ? { ...q, status: "failed" as const, error: msg }
               : q,
           ),
         );
       }
     }
-
     abortRef.current = null;
-    if (!anyFailed && completed.length > 0) {
+    if (!anyFailed && completed.length) {
       onUploadComplete?.(completed);
       setOverallStatus("success");
-    } else if (anyFailed) {
-      setOverallStatus("error");
-    } else {
-      setOverallStatus("queued");
-    }
-  }, [queue, userId, onUploadComplete]);
-
-  const cancelUpload = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setOverallStatus("error");
-  }, []);
-
-  const clearQueue = useCallback(() => {
-    setQueue([]);
-    setOverallStatus("idle");
-    setOverallError(null);
-  }, []);
+    } else if (anyFailed) setOverallStatus("error");
+    else setOverallStatus("queued");
+  }, [queue, isUploading, userId, onUploadComplete]);
 
   const removeItem = useCallback(
     (id: string) => setQueue((prev) => prev.filter((q) => q.id !== id)),
     [],
   );
-
-  const retryFailed = useCallback(() => {
-    setQueue((prev) =>
-      prev.map((q) =>
-        q.status === "failed"
-          ? { ...q, status: "pending" as const, error: undefined, progress: 0 }
-          : q,
-      ),
-    );
-    setOverallStatus("queued");
-    setOverallError(null);
+  const clearQueue = useCallback(() => {
+    setQueue([]);
+    setOverallStatus("idle");
   }, []);
+  const copyLink = useCallback(
+    async (item: QueuedFile) => {
+      if (!item.serverFileId) return;
+      try {
+        const link = await createShareLink(item.serverFileId);
+        await navigator.clipboard.writeText(link);
+        toast.success(
+          "Link copied",
+          "Anyone with this link can view the file.",
+        );
+      } catch {
+        toast.error(
+          "Failed to copy",
+          "Could not create the share link. Try again.",
+        );
+      }
+    },
+    [toast],
+  );
 
-  const doneCount = queue.filter((q) => q.status === "done").length;
-  const failedCount = queue.filter((q) => q.status === "failed").length;
-  const pendingCount = queue.filter((q) => q.status === "pending").length;
-  const uploadingCount = queue.filter((q) => q.status === "uploading").length;
-  const showActionBar = queue.length > 0;
-
-  const dropZoneBorder = isDragOver
-    ? "border-amber/70"
-    : queue.length > 0 || overallStatus === "success"
-      ? "border-amber/20"
-      : "border-amber/12";
-
-  const dropZoneShadow = isDragOver
-    ? "shadow-[0_0_0_1px_rgba(255,176,0,0.3),inset_0_0_80px_rgba(255,176,0,0.08)]"
-    : "";
+  const queueProgress = Math.round(
+    ((doneCount + uploadingCount) / Math.max(1, queue.length)) * 100,
+  );
 
   return (
-    <section
-      className="mx-auto flex min-h-56 w-full max-w-4xl flex-1 flex-col items-center sm:min-h-64 sm:max-h-[34rem]"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      aria-label="File Drop"
-    >
-      <input
-        id={inputId}
-        ref={hiddenInputRef}
-        type="file"
-        multiple
-        onChange={handleInputChange}
-        disabled={isUploading}
-        tabIndex={-1}
-        className="sr-only"
+    <div className="flex w-full flex-col gap-5">
+      <NoticeDialog
+        open={sizeWarning !== null}
+        title="Limit exceeded"
+        message={
+          sizeWarning
+            ? `Excluded files larger than ${sizeWarning.limitMB} MB.`
+            : ""
+        }
+        onDismiss={() => setSizeWarning(null)}
       />
-
       <label
         htmlFor={inputId}
-        className={[
-          "relative flex h-full min-h-56 w-full flex-1 flex-col items-center justify-center select-none sm:min-h-64",
-          "border bg-paper transition-[border-color,box-shadow] duration-200 ease-out",
-          "outline-2 outline-offset-2 outline-amber focus-visible:outline",
-          isUploading ? "cursor-not-allowed" : "cursor-pointer",
-          dropZoneBorder,
-          dropZoneShadow,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (e.dataTransfer.files)
+            handleFilesAdded(Array.from(e.dataTransfer.files));
+        }}
+        className={`vault-shell shadow-brutal relative flex min-h-[300px] w-full cursor-pointer flex-col items-center justify-center border-2 bg-panel p-8 text-center transition-colors focus-within:border-bone sm:min-h-[340px] ${isDragOver ? "border-bone bg-panel-hover" : "border-line-strong hover:border-bone/60"}`}
       >
-        <div
-          className="pointer-events-none absolute inset-0"
+        <input
+          id={inputId}
+          type="file"
+          multiple
+          onChange={(e) => {
+            if (e.target.files) {
+              handleFilesAdded(Array.from(e.target.files));
+              e.target.value = "";
+            }
+          }}
+          disabled={isUploading}
+          className="sr-only"
+        />
+        <span
+          className="animate-tick pointer-events-none absolute top-0 left-0 h-3 w-3 border-t-2 border-l-2 border-bone/40"
           aria-hidden="true"
-        >
-          <span
-            className={`absolute top-4 left-4 block h-5 w-5 border-t border-l transition-[border-color] duration-200 ${isDragOver ? "border-amber/60" : "border-amber/8"}`}
-          />
-          <span
-            className={`absolute top-4 right-4 block h-5 w-5 border-t border-r transition-[border-color] duration-200 ${isDragOver ? "border-amber/60" : "border-amber/8"}`}
-          />
-          <span
-            className={`absolute bottom-4 left-4 block h-5 w-5 border-b border-l transition-[border-color] duration-200 ${isDragOver ? "border-amber/60" : "border-amber/8"}`}
-          />
-          <span
-            className={`absolute right-4 bottom-4 block h-5 w-5 border-r border-b transition-[border-color] duration-200 ${isDragOver ? "border-amber/60" : "border-amber/8"}`}
-          />
-        </div>
+        />
+        <span
+          className="animate-tick pointer-events-none absolute top-0 right-0 h-3 w-3 border-t-2 border-r-2 border-bone/40 delay-1"
+          aria-hidden="true"
+        />
+        <span
+          className="animate-tick pointer-events-none absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-bone/40 delay-2"
+          aria-hidden="true"
+        />
+        <span
+          className="animate-tick pointer-events-none absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-bone/40 delay-3"
+          aria-hidden="true"
+        />
 
-        <div className="group relative flex h-full w-full flex-col items-center justify-center gap-3 text-center">
-          {isUploading ? (
-            <>
-              <span className="font-ibmplex text-sm tracking-[0.16em] text-amber uppercase tabular-nums">
-                {uploadingCount > 0
-                  ? `TRANSMITTING // ${doneCount + uploadingCount}/${queue.length}`
-                  : "FINALIZING //"}
-              </span>
-              <span className="block h-px w-20 bg-amber/30" />
-            </>
-          ) : isDragOver ? (
-            <span className="font-rajdhani text-3xl font-bold tracking-[0.15em] text-amber uppercase">
-              DROP //
+        {isUploading ? (
+          <div className="flex w-full max-w-[320px] flex-col items-center gap-3">
+            <span className="font-mono text-[11px] tracking-[0.16em] text-bone uppercase">
+              Uploading • {doneCount + uploadingCount} / {queue.length}
             </span>
-          ) : queue.length > 0 ? (
-            <span className="font-ibmplex text-sm tracking-[0.12em] text-amber/50 uppercase">
-              {doneCount > 0
-                ? `${doneCount} FILE${doneCount !== 1 ? "S" : ""} // UPLOADED`
-                : `${queue.length} FILE${queue.length !== 1 ? "S" : ""} // QUEUED`}
-            </span>
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center">
-              <div className="absolute inset-1.5 scale-[0.98] opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:bg-amber group-hover:opacity-100 z-0" />
-              <span className="relative z-10 font-rajdhani text-2xl font-semibold tracking-[0.18em] text-amber/45 uppercase delay-100 group-hover:text-black/70">
-                DROP FILES //
-              </span>
-              <span className="relative z-10 font-ibmplex text-xs tracking-[0.14em] text-amber/28 uppercase delay-100 group-hover:text-black/40">
-                OR CLICK TO SELECT //
-              </span>
+            <div
+              className="h-2 w-full overflow-hidden border border-line-strong bg-paper"
+              role="progressbar"
+              aria-label="Overall upload progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={queueProgress}
+            >
+              <div
+                className="h-full bg-bone transition-all duration-200"
+                style={{ width: `${queueProgress}%` }}
+              />
             </div>
-          )}
-        </div>
+          </div>
+        ) : isDragOver ? (
+          <span className="font-syne text-[2rem] leading-[0.9] font-extrabold tracking-[-0.03em] text-bone uppercase sm:text-[2.4rem]">
+            Release to ingest
+          </span>
+        ) : (
+          <>
+            <span className="animate-brutal font-syne text-[2rem] leading-[0.9] font-extrabold tracking-[-0.04em] text-bone uppercase delay-2 sm:text-[2.6rem]">
+              Drop files here
+            </span>
+            <span className="animate-brutal mt-3 font-mono text-[11px] tracking-[0.16em] text-muted uppercase delay-3">
+              or click to select from disk
+            </span>
+            <span className="animate-brutal mt-5 inline-flex border border-line-strong bg-paper px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-muted uppercase delay-3">
+              {uploadHint}
+            </span>
+          </>
+        )}
       </label>
 
-      {showActionBar && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-paper/90 p-3 backdrop-blur-md sm:p-6"
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Upload progress"
-        >
-          <div className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden border border-amber/25 bg-paper shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
-            <div className="flex shrink-0 items-center justify-between border-b border-amber bg-amber px-4 py-3 sm:px-5">
-              <span className="font-rajdhani text-sm font-bold tracking-[0.12em] text-paper uppercase">
-                {isUploading
-                  ? `UPLOADING // ${doneCount + uploadingCount}/${queue.length}`
-                  : overallStatus === "success"
-                    ? "UPLOAD COMPLETE //"
-                    : `${queue.length} FILE${queue.length !== 1 ? "S" : ""} QUEUED //`}
-              </span>
-              {(overallStatus === "queued" || overallStatus === "success") && (
-                <button
-                  type="button"
-                  onClick={clearQueue}
-                  className="flex h-6 w-6 items-center justify-center font-ibmplex text-sm text-paper/50 transition-colors duration-100 hover:cursor-pointer hover:text-paper"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {queue.length > 0 && (
-              <ul className="flex min-h-0 max-h-[50dvh] list-none flex-col overflow-y-auto sm:max-h-60">
-                {queue.map((item, index) => (
-                  <li
-                    key={item.id}
-                    className={[
-                      "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-4 py-3 font-ibmplex text-sm transition-colors duration-100 sm:flex sm:gap-3 sm:px-5 sm:text-base",
-                      index < queue.length - 1 ? "border-b border-amber/6" : "",
-                      item.status === "pending" && "text-parchment/80",
-                      item.status === "uploading" && "text-amber",
-                      item.status === "done" && "text-parchment",
-                      item.status === "failed" && "text-red-400",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
+      {queue.length > 0 && (
+        <div className="shadow-brutal border-2 border-line-strong bg-panel">
+          <div className="flex items-center justify-between border-b-2 border-line px-4 py-3">
+            <span className="font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
+              Queue • {queue.length}
+            </span>
+            <button
+              type="button"
+              onClick={clearQueue}
+              className="-mr-2 px-3 py-2 font-mono text-[11px] tracking-wide text-muted uppercase transition-colors hover:text-bone"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="divide-y divide-line">
+            {queue.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-4 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-sans text-[13px] font-semibold text-bone">
+                    {item.file.name}
+                  </div>
+                  <div className="font-mono text-[11px] tracking-wide text-muted">
+                    {formatFileSize(item.file.size)} •{" "}
                     <span
-                      className={[
-                        "block h-1.5 w-1.5 shrink-0 rounded-full",
-                        item.status === "pending" && "bg-parchment/20",
-                        (item.status === "uploading" ||
-                          item.status === "done") &&
-                          "bg-amber",
-                        item.status === "failed" && "bg-red-400",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      aria-hidden="true"
-                    />
-
-                    {item.status === "uploading" && (
-                      <div className="col-start-2 row-start-2 h-px w-full bg-amber/10 sm:col-auto sm:h-px sm:w-16 sm:shrink-0">
-                        <div
-                          className="h-full bg-amber transition-[width] duration-200 ease-out"
-                          style={{ width: `${item.progress}%` }}
-                          role="progressbar"
-                          aria-valuenow={item.progress}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-label={`Progress: ${item.progress}%`}
-                        />
-                      </div>
-                    )}
-
-                    <span className="min-w-0 truncate tracking-[0.03em] sm:flex-1">
-                      {item.file.name}
+                      className={
+                        item.status === "done"
+                          ? "text-safe"
+                          : item.status === "failed"
+                            ? "text-danger"
+                            : "text-muted"
+                      }
+                    >
+                      {item.status}
                     </span>
-
-                    <span className="shrink-0 text-xs tracking-[0.04em] text-parchment/80 tabular-nums sm:text-sm sm:tracking-[0.06em]">
-                      {formatFileSize(item.file.size)}
-                    </span>
-
-                    {item.status === "done" && (
+                  </div>
+                  {item.status === "uploading" && (
+                    <div
+                      className="mt-2 h-1 border border-line-strong bg-paper"
+                      role="progressbar"
+                      aria-label={`Uploading ${item.file.name}`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={item.progress}
+                    >
+                      <div
+                        className="h-full bg-bone transition-all"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                  )}
+                  {item.error && (
+                    <div className="mt-1 font-mono text-[11px] text-danger">
+                      {item.error}
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {item.status === "done" && item.serverFileId && (
+                    <>
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/view/${item.serverFileId}`);
-                        }}
-                        className="col-span-3 mt-1 justify-self-end border border-amber/60 px-2.5 py-1 font-rajdhani text-xs font-bold tracking-[0.1em] text-amber uppercase transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber sm:col-auto sm:mt-0 sm:shrink-0"
+                        onClick={() => onView?.(item.serverFileId!)}
+                        className="btn-hud-outline btn-hud-info btn-hud-sm"
                         aria-label={`View ${item.file.name}`}
                       >
-                        VIEW →
+                        <Eye size={12} aria-hidden />
+                        <span className="hidden sm:inline">&nbsp;View</span>
                       </button>
-                    )}
-
-                    {item.status === "failed" && (
-                      <span
-                        className="col-start-2 row-start-2 shrink-0 text-xs tracking-[0.06em] text-red-400 sm:col-auto sm:row-auto"
-                        title={item.error}
-                        aria-label={item.error || "Upload failed"}
-                      >
-                        ERR
-                      </span>
-                    )}
-
-                    {item.status === "uploading" && (
-                      <span className="col-start-3 row-start-2 shrink-0 text-xs font-bold text-amber tabular-nums sm:col-auto sm:row-auto">
-                        {item.progress}%
-                      </span>
-                    )}
-
-                    {(item.status === "pending" ||
-                      item.status === "failed") && (
                       <button
                         type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="col-start-3 row-start-2 -mr-1 flex h-6 w-6 shrink-0 items-center justify-center justify-self-end text-parchment/80 transition-colors duration-100 hover:cursor-pointer hover:bg-amber hover:font-bold hover:text-black focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber sm:col-auto sm:row-auto"
-                        aria-label={`Remove ${item.file.name}`}
+                        onClick={() =>
+                          onDownload
+                            ? onDownload(item.serverFileId!)
+                            : downloadFile(item.serverFileId!)
+                        }
+                        className="btn-hud-outline btn-hud-info btn-hud-sm"
+                        aria-label={`Download ${item.file.name}`}
                       >
-                        ✕
+                        <Download size={12} aria-hidden />
+                        <span className="hidden sm:inline">&nbsp;Download</span>
                       </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {overallError && (
-              <div
-                role="alert"
-                className="max-h-24 overflow-y-auto border-t border-red-400/20 px-4 py-2.5 font-ibmplex text-xs leading-relaxed tracking-[0.04em] text-red-400 sm:px-5 sm:tracking-[0.06em]"
-              >
-                {overallError}
-              </div>
-            )}
-
-            <div className="flex shrink-0 flex-col items-stretch gap-px border-t border-amber/8 sm:flex-row sm:items-center">
-              {!isUploading && (
-                <>
-                  {(overallStatus === "queued" || overallStatus === "error") &&
-                    pendingCount > 0 && (
-                      <button
-                        type="button"
-                        onClick={startUpload}
-                        className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
-                      >
-                        {userId ? "UPLOAD" : "UPLOAD AS GUEST"}{" "}
-                        {pendingCount > 0 ? `// ${pendingCount}` : ""}
-                        <span className="ml-4 inline-block">→</span>
-                      </button>
-                    )}
-
-                  {failedCount > 0 && (
+                    </>
+                  )}
+                  {item.status === "done" && userId && (
                     <button
                       type="button"
-                      onClick={retryFailed}
-                      className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
+                      onClick={() => copyLink(item)}
+                      className="btn-hud-outline btn-hud-info btn-hud-sm"
                     >
-                      RETRY // {failedCount}
+                      Copy link
                     </button>
                   )}
-
-                  {(overallStatus === "queued" || overallStatus === "error") &&
-                    queue.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={clearQueue}
-                        className="border-t border-amber/8 px-6 py-3 font-rajdhani text-sm tracking-[0.1em] text-parchment/50 uppercase transition-colors duration-100 hover:cursor-pointer hover:font-semibold hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber sm:m-2 sm:border-t-0 sm:border-l sm:py-4"
-                      >
-                        CLEAR
-                      </button>
-                    )}
-                </>
-              )}
-
-              {isUploading && (
-                <button
-                  type="button"
-                  onClick={cancelUpload}
-                  className="w-full py-3.5 font-rajdhani text-sm font-bold tracking-[0.12em] text-parchment/40 uppercase transition-colors duration-100 hover:cursor-pointer hover:bg-red-600/70 hover:text-black/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber"
-                >
-                  CANCEL //
-                </button>
-              )}
-
-              {overallStatus === "success" && (
-                <button
-                  type="button"
-                  onClick={clearQueue}
-                  className="flex-1 bg-amber px-3 py-3.5 font-rajdhani text-lg font-bold tracking-[0.1em] text-paper uppercase outline-0 outline-offset-2 transition-all duration-200 hover:cursor-pointer hover:bg-paper hover:text-white hover:outline-4 hover:-outline-offset-4 hover:outline-amber-bright focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-amber-bright sm:py-4 sm:text-xl sm:tracking-[0.15em]"
-                >
-                  UPLOAD MORE →
-                </button>
-              )}
-            </div>
+                  {item.status === "done" && !userId && (
+                    <button
+                      type="button"
+                      onClick={() => onNeedAccount?.()}
+                      className="btn-hud-outline btn-hud-info btn-hud-sm"
+                      title="Create an account to share files"
+                    >
+                      Sign in to share
+                    </button>
+                  )}
+                  {item.status !== "uploading" && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      className="btn-hud-outline btn-hud-destructive"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="flex justify-end border-t-2 border-line p-3">
+            <button
+              type="button"
+              onClick={startUploads}
+              disabled={isUploading || pending === 0}
+              className="btn-hud-primary btn-hud-constructive w-full disabled:opacity-35 sm:w-auto"
+            >
+              {isUploading
+                ? "Uploading…"
+                : pending
+                  ? `Upload (${pending})`
+                  : "Upload"}
+            </button>
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

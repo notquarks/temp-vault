@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { fileKeys, filelist, guestUploadEvents } from "../db/schema";
+import { fileKeys, filelist, guestUploadEvents, shares } from "../db/schema";
 import { auth } from "../lib/auth";
 import { unwrapKey, wrappedKey } from "../lib/crypto";
 import { db } from "../lib/db";
@@ -22,6 +22,7 @@ import {
   verifyAndReserveGuestUpload,
 } from "../lib/guest-security";
 import { s3 } from "../lib/s3";
+import { hasValidShareCapability } from "../lib/share-access";
 
 const files = new Hono();
 const GUEST_OWNER_ID = "__guest__";
@@ -36,6 +37,12 @@ function decodeBase64(value: string): Uint8Array | null {
 }
 
 async function canReadPrivateFile(c: any, file: typeof filelist.$inferSelect) {
+  const shareId = c.req.header("x-share-id");
+  const shareToken = c.req.header("x-share-token");
+  if (shareId || shareToken) {
+    return hasValidShareCapability(file.id, shareId, shareToken);
+  }
+
   if (file.private !== 1) return true;
   if (file.isGuest) {
     return safeHashEquals(
@@ -67,6 +74,21 @@ files.get("/guest-challenge", (c) => {
 });
 
 files.post("/upload", async (c) => {
+  const contentLengthHeader = c.req.header("content-length");
+  const contentLength = contentLengthHeader
+    ? Number(contentLengthHeader)
+    : 0;
+  const maxRequestBytes = AUTHENTICATED_FILE_LIMIT + 1024 * 1024;
+  if (
+    contentLengthHeader &&
+    (!Number.isSafeInteger(contentLength) || contentLength < 0)
+  ) {
+    return c.json({ error: "Invalid content length" }, 400);
+  }
+  if (contentLength > maxRequestBytes) {
+    return c.json({ error: "Upload request is too large" }, 413);
+  }
+
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   const isGuest = !session;
   let guestEventId: string | undefined;
@@ -82,15 +104,6 @@ files.post("/upload", async (c) => {
         );
       }
       guestIpHash = hashIp(ip);
-      const reservation = await verifyAndReserveGuestUpload(
-        guestIpHash,
-        c.req.header("x-guest-challenge"),
-        c.req.header("x-guest-proof"),
-      );
-      if ("error" in reservation) {
-        return c.json({ error: reservation.error }, reservation.status);
-      }
-      guestEventId = reservation.eventId;
     } catch {
       return c.json({ error: "Guest upload checks are unavailable" }, 503);
     }
@@ -158,11 +171,23 @@ files.post("/upload", async (c) => {
     return c.json({ error: "Invalid encryption metadata" }, 400);
   }
 
-  if (isGuest && guestIpHash && guestEventId) {
-    await db
-      .update(guestUploadEvents)
-      .set({ size: declaredSize, status: "reserved" })
-      .where(eq(guestUploadEvents.id, guestEventId));
+  if (isGuest && guestIpHash) {
+    try {
+      const reservation = await verifyAndReserveGuestUpload(
+        guestIpHash,
+        c.req.header("x-guest-challenge"),
+        c.req.header("x-guest-proof"),
+        declaredSize,
+      );
+      if ("error" in reservation) {
+        return c.json({ error: reservation.error }, reservation.status);
+      }
+      guestEventId = reservation.eventId;
+
+      await db
+        .update(guestUploadEvents)
+        .set({ size: declaredSize, status: "reserved" })
+        .where(eq(guestUploadEvents.id, guestEventId));
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [usage] = await db
       .select({
@@ -180,7 +205,10 @@ files.post("/upload", async (c) => {
         .update(guestUploadEvents)
         .set({ size: 0, status: "rejected" })
         .where(eq(guestUploadEvents.id, guestEventId));
-      return c.json({ error: "Daily guest storage limit reached" }, 429);
+        return c.json({ error: "Daily guest storage limit reached" }, 429);
+      }
+    } catch {
+      return c.json({ error: "Guest upload checks are unavailable" }, 503);
     }
   }
 
@@ -332,19 +360,24 @@ files.get("/:id", async (c) => {
     );
   }
   if (!response.Body) return c.json({ error: "File not found" }, 404);
+  const headers = new Headers({
+    "Content-Type": "application/octet-stream",
+    "Content-Disposition": `inline; filename="${fileId}"`,
+    "Cache-Control": "private, no-store, must-revalidate",
+    "X-Content-Type-Options": "nosniff",
+  });
+  if (typeof (response.Body as any).transformToWebStream === "function") {
+    return new Response((response.Body as any).transformToWebStream(), { headers });
+  }
   const content = await response.Body.transformToByteArray();
   if (content.length === 0) return c.json({ error: "Empty file" }, 404);
-  const responseBody = content.buffer.slice(
-    content.byteOffset,
-    content.byteOffset + content.byteLength,
-  ) as ArrayBuffer;
-  return new Response(responseBody, {
-    headers: {
-      "Content-Type": "application/octet-stream",
-      "Content-Disposition": `inline; filename="${fileId}"`,
-      "Cache-Control": "no-store, must-revalidate",
-    },
-  });
+  return new Response(
+    content.buffer.slice(
+      content.byteOffset,
+      content.byteOffset + content.byteLength,
+    ) as ArrayBuffer,
+    { headers },
+  );
 });
 
 files.get("/:id/meta", async (c) => {
@@ -365,7 +398,6 @@ files.get("/:id/meta", async (c) => {
   const canShare = Boolean(
     session &&
     !fileRow.isGuest &&
-    fileRow.private !== 1 &&
     fileRow.ownerId === session.user.id,
   );
 
@@ -386,7 +418,10 @@ files.get("/:id/meta", async (c) => {
         canShare,
       },
       200,
-      { "Cache-Control": "no-store, must-revalidate" },
+      {
+        "Cache-Control": "private, no-store, must-revalidate",
+        "X-Content-Type-Options": "nosniff",
+      },
     );
   } catch {
     return c.json({ error: "Failed to decrypt file key" }, 500);
@@ -441,10 +476,17 @@ files.patch("/:id/privacy", async (c) => {
   if (fileRow.isGuest || fileRow.ownerId !== session.user.id) {
     return c.json({ error: "Forbidden" }, 403);
   }
+  const now = new Date();
   await db
     .update(filelist)
-    .set({ private: body.isPrivate ? 1 : 0, updatedAt: new Date() })
+    .set({ private: body.isPrivate ? 1 : 0, updatedAt: now })
     .where(eq(filelist.id, fileId));
+  if (body.isPrivate) {
+    await db
+      .update(shares)
+      .set({ revokedAt: now, updatedAt: now })
+      .where(eq(shares.fileId, fileId));
+  }
   return c.json({ success: true, private: body.isPrivate });
 });
 

@@ -5,6 +5,10 @@ import {
   encryptText,
   generateFileKey,
 } from "./crypto";
+import {
+  getTextPreviewLanguage,
+  MAX_TEXT_PREVIEW_BYTES,
+} from "./text-preview";
 export interface UploadResult {
   fileId: string;
   fileName: string;
@@ -358,19 +362,24 @@ export async function download(
   options?: {
     signal?: AbortSignal;
     shareId?: string;
+    shareToken?: string;
     decryptionKey?: string;
   },
 ): Promise<{
   blobUrl: string;
   name: string;
-  fileKey: CryptoKey;
   canShare: boolean;
+  textContent: string | null;
+  textLanguage: string | null;
+  isTextFile: boolean;
 }> {
   try {
-    const shareQuery = options?.shareId ? `?shareId=${options.shareId}` : "";
-    const metaRes = await fetch(`/api/files/${fileId}/meta${shareQuery}`, {
+    const shareHeaders = new Headers(guestAccessHeaders(fileId));
+    if (options?.shareId) shareHeaders.set("X-Share-Id", options.shareId);
+    if (options?.shareToken) shareHeaders.set("X-Share-Token", options.shareToken);
+    const metaRes = await fetch(`/api/files/${fileId}/meta`, {
       signal: options?.signal,
-      headers: guestAccessHeaders(fileId),
+      headers: shareHeaders,
     });
 
     if (!metaRes.ok) {
@@ -410,9 +419,9 @@ export async function download(
       ivNameBytes,
     );
 
-    const fileRes = await fetch(`/api/files/${fileId}${shareQuery}`, {
+    const fileRes = await fetch(`/api/files/${fileId}`, {
       signal: options?.signal,
-      headers: guestAccessHeaders(fileId),
+      headers: shareHeaders,
     });
     if (!fileRes.ok) {
       throw new UploadError(
@@ -424,17 +433,23 @@ export async function download(
     const ivBytes = Uint8Array.from(atob(iv), (c) => c.charCodeAt(0));
     const encData = await fileRes.arrayBuffer();
     const fileBuffer = await decryptFile(encData, fileKey, ivBytes);
-    const blob = new Blob([fileBuffer], {
-      type:
-        typeof fileType === "string" && fileType
-          ? fileType
-          : "application/octet-stream",
-    });
+    const contentType =
+      typeof fileType === "string" && fileType
+        ? fileType
+        : "application/octet-stream";
+    const textLanguage = getTextPreviewLanguage(contentType, decryptedName);
+    const textContent =
+      textLanguage && fileBuffer.byteLength <= MAX_TEXT_PREVIEW_BYTES
+        ? new TextDecoder().decode(fileBuffer)
+        : null;
+    const blob = new Blob([fileBuffer], { type: contentType });
     return {
       blobUrl: URL.createObjectURL(blob),
       name: decryptedName,
-      fileKey,
       canShare: canShare === true,
+      textContent,
+      textLanguage,
+      isTextFile: textLanguage !== null,
     };
   } catch (err) {
     if (err instanceof UploadError) throw err;
@@ -446,18 +461,12 @@ export async function download(
     );
   }
 }
-export async function createShareLink(
-  fileId: string,
-  fileKey: CryptoKey,
-): Promise<string> {
-  const raw = await crypto.subtle.exportKey("raw", fileKey);
-  const keyB64 = btoa(String.fromCharCode(...new Uint8Array(raw)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
+export async function createShareLink(fileId: string): Promise<string> {
+  const headers = new Headers(guestAccessHeaders(fileId));
+  headers.set("Content-Type", "application/json");
   const res = await fetch("/api/share/create", {
     method: "POST",
+    headers,
     body: JSON.stringify({ fileId }),
   });
 
@@ -469,8 +478,11 @@ export async function createShareLink(
     );
   }
 
-  const { shareId } = await res.json();
-  return `${window.location.origin}/share/${shareId}#key=${keyB64}`;
+  const { shareId, capability } = await res.json();
+  if (typeof shareId !== "string" || typeof capability !== "string") {
+    throw new UploadError("Invalid share response", "SERVER_ERROR");
+  }
+  return `${window.location.origin}/share/${shareId}#token=${encodeURIComponent(capability)}`;
 }
 export interface FileRecord {
   id: string;
@@ -543,6 +555,18 @@ export async function getUserFiles(userId: string): Promise<FileRecord[]> {
     }),
   );
 }
+export async function downloadFile(
+  fileId: string,
+  options?: Parameters<typeof download>[1],
+): Promise<void> {
+  const { blobUrl, name } = await download(fileId, options);
+  const anchor = document.createElement("a");
+  anchor.href = blobUrl;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+}
+
 export async function deleteFile(fileId: string): Promise<void> {
   const res = await fetch(`/api/files/${fileId}`, { method: "DELETE" });
 

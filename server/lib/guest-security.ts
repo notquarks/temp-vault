@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { isIP } from "node:net";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { Context } from "hono";
 import { guestUploadEvents } from "../db/schema";
@@ -6,8 +7,6 @@ import { db } from "./db";
 
 export const GUEST_FILE_LIMIT = 20 * 1024 * 1024;
 export const AUTHENTICATED_FILE_LIMIT = 50 * 1024 * 1024;
-export const GUEST_UPLOADS_PER_15_MINUTES = 3;
-export const GUEST_UPLOADS_PER_DAY = 10;
 export const GUEST_BYTES_PER_DAY = 25 * 1024 * 1024;
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -21,14 +20,25 @@ function securitySecret(): string {
   return secret;
 }
 
+function validIp(value: string | undefined): string | null {
+  const ip = value?.trim();
+  return ip && isIP(ip) ? ip : null;
+}
+
 export function clientIp(c: Context): string | null {
-  const cloudflareIp = c.req.header("cf-connecting-ip");
-  if (cloudflareIp) return cloudflareIp.trim();
+  const trustCloudflare =
+    process.env.TRUST_CLOUDFLARE_HEADERS === "true" ||
+    process.env.NODE_ENV !== "production";
+  if (trustCloudflare) {
+    const cloudflareIp = validIp(c.req.header("cf-connecting-ip"));
+    if (cloudflareIp) return cloudflareIp;
+  }
 
   if (process.env.TRUST_PROXY_HEADERS === "true") {
     const forwarded = c.req.header("x-forwarded-for");
-    const proxyIp = c.req.header("x-real-ip") || forwarded?.split(",")[0];
-    if (proxyIp) return proxyIp.trim();
+    const proxyIp = validIp(c.req.header("x-real-ip")) ||
+      validIp(forwarded?.split(",")[0]);
+    if (proxyIp) return proxyIp;
   }
 
   if (process.env.NODE_ENV !== "production") return "127.0.0.1";
@@ -84,9 +94,13 @@ export async function verifyAndReserveGuestUpload(
   ipHash: string,
   challenge: string | undefined,
   solution: string | undefined,
-): Promise<{ eventId: string } | { error: string; status: 400 | 409 | 429 }> {
+  sizeBytes: number,
+ ): Promise<{ eventId: string } | { error: string; status: 400 | 409 | 429 | 503 }> {
   if (!challenge || !solution || !/^\d+$/.test(solution)) {
     return { error: "Guest proof is required", status: 400 };
+  }
+  if (!Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > GUEST_FILE_LIMIT) {
+    return { error: "Invalid guest upload size", status: 400 };
   }
 
   const parts = challenge.split(".");
@@ -121,52 +135,42 @@ export async function verifyAndReserveGuestUpload(
   }
 
   const now = new Date();
-  const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [recent] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(guestUploadEvents)
-    .where(
-      and(
-        eq(guestUploadEvents.ipHash, ipHash),
-        gte(guestUploadEvents.createdAt, fifteenMinutesAgo),
-      ),
-    );
-  if (Number(recent?.count ?? 0) >= GUEST_UPLOADS_PER_15_MINUTES) {
-    return { error: "Guest upload rate limit reached", status: 429 };
-  }
+  const challengeHash = hashCapability(challenge);
 
-  const [daily] = await db
-    .select({
-      count: sql<number>`count(*)`,
-      bytes: sql<number>`coalesce(sum(${guestUploadEvents.size}), 0)`,
-    })
-    .from(guestUploadEvents)
-    .where(
-      and(
-        eq(guestUploadEvents.ipHash, ipHash),
-        gte(guestUploadEvents.createdAt, dayAgo),
-      ),
-    );
-  if (Number(daily?.count ?? 0) >= GUEST_UPLOADS_PER_DAY) {
-    return { error: "Daily guest upload limit reached", status: 429 };
-  }
-  if (Number(daily?.bytes ?? 0) >= GUEST_BYTES_PER_DAY) {
-    return { error: "Daily guest storage limit reached", status: 429 };
-  }
-
-  const eventId = crypto.randomUUID();
   try {
-    await db.insert(guestUploadEvents).values({
-      id: eventId,
-      ipHash,
-      challengeHash: hashCapability(challenge),
-      size: 0,
-      status: "started",
-      createdAt: now,
+    return await db.transaction(async (tx) => {
+      const [daily] = await tx
+        .select({
+          bytes: sql<number>`coalesce(sum(${guestUploadEvents.size}), 0)`,
+        })
+        .from(guestUploadEvents)
+        .where(
+          and(
+            eq(guestUploadEvents.ipHash, ipHash),
+            gte(guestUploadEvents.createdAt, dayAgo),
+          ),
+        );
+      if (Number(daily?.bytes ?? 0) + sizeBytes > GUEST_BYTES_PER_DAY) {
+        return { error: "Daily guest storage limit reached", status: 429 } as const;
+      }
+
+      const eventId = crypto.randomUUID();
+      try {
+        await tx.insert(guestUploadEvents).values({
+          id: eventId,
+          ipHash,
+          challengeHash,
+          size: sizeBytes,
+          status: "reserved",
+          createdAt: now,
+        });
+      } catch {
+        return { error: "Guest proof has already been used", status: 409 } as const;
+      }
+      return { eventId } as const;
     });
   } catch {
-    return { error: "Guest proof has already been used", status: 409 };
+    return { error: "Guest upload checks are unavailable", status: 503 };
   }
-  return { eventId };
 }

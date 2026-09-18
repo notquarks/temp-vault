@@ -4,7 +4,7 @@ import type { Route } from "./+types/view";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Arkivio // View" },
-    { name: "description", content: "Welcome to React Router!" },
+    { name: "description", content: "View a shared Arkivio file." },
   ];
 }
 

@@ -30,7 +30,7 @@ const CustomCheckbox = ({
 
   return (
     <label
-      className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center ${className}`}
+      className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-bone ${className}`}
     >
       <input
         type="checkbox"

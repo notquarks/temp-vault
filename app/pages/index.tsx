@@ -1,116 +1,46 @@
 import { useNavigate } from "react-router";
 import UploadArea from "~/components/upload-area";
+import { downloadFile } from "~/lib/api";
 import { authClient } from "~/lib/auth-client";
-
-export default function HomeScreen({}) {
+import { useToast } from "~/components/feedback";
+export default function HomeScreen() {
   const navigate = useNavigate();
   const { data: session } = authClient.useSession();
-
+  const toast = useToast();
   return (
-    <div className="marathon-grid flex min-h-dvh w-full flex-col overflow-hidden sm:h-dvh sm:flex-row">
-      <nav className="flex h-16 w-full shrink-0 items-center justify-between border-b border-amber/10 bg-paper px-4 py-2 sm:my-1 sm:ml-1 sm:h-auto sm:w-14 sm:flex-col sm:items-stretch sm:border-r sm:border-b-0 sm:px-2 sm:py-4">
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="flex items-start justify-start gap-1 opacity-100 transition-opacity duration-150 ease-out hover:cursor-pointer hover:opacity-65 sm:flex-col sm:gap-0"
-        >
-          <span className="font-bitcount text-base leading-none font-extrabold text-amber sm:text-xl">
-            ARK
-          </span>
-          <span className="font-bitcount text-base leading-none font-extrabold text-amber sm:text-xl">
-            IVI
-          </span>
-          <span className="font-bitcount text-base leading-none font-extrabold text-amber sm:text-xl">
-            O//
-          </span>
+    <div className="min-h-dvh flex flex-col bg-paper text-bone selection:bg-bone selection:text-paper">
+      <header className="border-b-2 border-line h-14 sm:h-16 px-5 sm:px-6 flex items-center justify-between shrink-0 animate-brutal">
+        <button type="button" onClick={() => navigate("/")} className="font-mono text-[1.05rem] sm:text-lg font-bold tracking-[0.13em] uppercase leading-none hover:opacity-70 transition-opacity">
+          ARKIVIO
         </button>
         {session ? (
-          <button
-            type="button"
-            className="flex gap-1 font-rajdhani text-sm font-bold tracking-[0.08em] text-amber/55 uppercase transition-colors duration-150 ease-out hover:cursor-pointer hover:text-amber sm:flex-col sm:gap-0 sm:text-base"
-            onClick={() => navigate("/dashboard")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") navigate("/dashboard");
-            }}
-          >
-            <span>DASH</span>
-            <span>BOARD//</span>
-          </button>
+          <button onClick={() => navigate("/dashboard")} className="btn-hud-outline btn-hud-info px-4 min-h-[44px]">Dashboard</button>
         ) : (
-          <button
-            type="button"
-            className="flex gap-1 font-rajdhani text-sm font-bold tracking-[0.08em] text-amber/55 uppercase transition-colors duration-150 ease-out hover:cursor-pointer hover:text-amber sm:flex-col sm:gap-0 sm:text-base"
-            onClick={() => navigate("/login")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") navigate("/login");
-            }}
-          >
-            <span>LOG</span>
-            <span>IN//</span>
-          </button>
+          <button onClick={() => navigate("/login")} className="btn-hud-primary btn-hud-constructive px-5 py-0 min-h-[44px]">Sign In</button>
         )}
-      </nav>
-
-      <main className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto px-4 pt-5 pb-4 sm:justify-center sm:px-6 sm:pt-8 sm:pb-6 lg:px-10">
-        <div className="w-full max-w-4xl pb-4 select-none sm:pb-6">
-          <div className="relative flex items-center justify-center">
-            <span
-              className="absolute left-0 font-ibmplex text-xl font-bold text-amber/60"
-              aria-hidden="true"
-            >
-              +
-            </span>
-            <h1 className="font-rajdhani text-[clamp(3.25rem,18vw,7.5rem)] leading-none font-bold tracking-[-0.02em] text-amber uppercase sm:text-[clamp(4rem,9vw,7.5rem)]">
-              UPLOAD
-            </h1>
-            <span
-              className="absolute right-0 font-ibmplex text-xl font-bold text-amber/60"
-              aria-hidden="true"
-            >
-              +
-            </span>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:gap-3">
-            <span className="hidden font-ibmplex text-[0.6rem] tracking-[0.22em] text-amber/40 uppercase sm:inline">
-              IIII IIII
-            </span>
-            <span className="hidden text-[0.6rem] text-amber/25 sm:inline">
-              ×
-            </span>
-            <span className="font-ibmplex text-[0.6rem] tracking-[0.22em] text-amber/40 uppercase">
-              {session ? "50 MB MAX" : "20 MB GUEST MAX"}
-            </span>
-            <span className="text-[0.6rem] text-amber/25">×</span>
-            <span className="font-ibmplex text-[0.6rem] tracking-[0.22em] text-amber/40 uppercase">
-              {session ? "10 FILES" : "3 FILES"}
-            </span>
-            <span className="text-[0.6rem] text-amber/25">×</span>
-            <span className="font-ibmplex text-[0.6rem] tracking-[0.22em] text-amber/40">
-              SEQUENTIAL //
-            </span>
-          </div>
-          {!session && (
-            <p className="mt-2 px-2 text-center font-ibmplex text-[0.55rem] leading-relaxed tracking-[0.09em] text-amber/35 uppercase sm:mt-3 sm:text-[0.6rem] sm:tracking-[0.12em]">
-              ENCRYPTED // 7-DAY RETENTION // GUESTS CANNOT DELETE //
-            </p>
-          )}
+      </header>
+      <main className="flex-1 flex items-center justify-center p-5 sm:p-8 lg:p-10 bg-paper">
+        <div className="w-full max-w-[640px] animate-brutal delay-1">
+          <UploadArea
+            userId={session?.user?.id}
+            onNeedAccount={() => navigate("/login")}
+            onView={(fileId) => navigate(`/view/${fileId}`)}
+            onDownload={async (fileId) => {
+              try {
+                await downloadFile(fileId);
+              } catch {
+                toast.error("Download failed", "Could not retrieve this item. Try again.");
+              }
+            }}
+          />
         </div>
-
-        <UploadArea userId={session?.user?.id} />
       </main>
-
-      <aside
-        className="hidden w-7 shrink-0 flex-col items-center justify-between bg-amber py-4 sm:flex"
-        aria-hidden="true"
-      >
-        <span className="[transform:rotate(180deg)] font-ibmplex text-[8px] font-bold tracking-[0.18em] text-paper uppercase [writing-mode:vertical-rl]">
-          ARKIVIO
-        </span>
-        <span className="[transform:rotate(180deg)] font-ibmplex text-[7px] font-bold tracking-[0.12em] text-paper/50 [writing-mode:vertical-rl]">
-          //
-        </span>
-      </aside>
+      <footer className="border-t-2 border-line px-5 sm:px-6 h-10 flex items-center justify-between shrink-0">
+        <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted">© 2026 ARKIVIO</span>
+        <a href="https://github.com/notquarks/temp-vault" target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted hover:text-bone underline decoration-white/20 underline-offset-4">
+          GITHUB
+        </a>
+      </footer>
     </div>
   );
 }

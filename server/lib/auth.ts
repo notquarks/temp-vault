@@ -4,9 +4,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "../db/schema";
 
-let _auth: ReturnType<typeof betterAuth>;
+let _auth: any;
 
-export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
+export const auth = new Proxy({} as any, {
   get(_, prop) {
     if (!_auth) {
       _auth = betterAuth({
@@ -22,6 +22,7 @@ export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
         },
         trustedOrigins: [
           "http://localhost:5173",
+          "http://127.0.0.1:5173",
           process.env.VITE_BACKEND_URL,
         ].filter(Boolean) as string[],
         ...(process.env.VITE_BACKEND_URL

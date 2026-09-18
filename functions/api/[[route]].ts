@@ -12,5 +12,5 @@ export const onRequest = (context: any) => {
     Object.assign(globalThis.process.env, context.env);
   }
 
-  return handle(app)(context);
+  return handle(app as any)(context);
 };

@@ -4,7 +4,7 @@ import { DashboardScreen } from "../pages/dashboard/dashboard_screen";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Arkivio // DASHBOARD" },
-    { name: "description", content: "Welcome to React Router!" },
+    { name: "description", content: "Manage the files stored in your Arkivio vault." },
   ];
 }
 

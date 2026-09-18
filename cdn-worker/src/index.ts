@@ -25,8 +25,10 @@ export default {
       const cookie = request.headers.get("Cookie");
       if (cookie) fetchHeaders.set("Cookie", cookie);
 
-      const auth = request.headers.get("Authorization");
-      if (auth) fetchHeaders.set("Authorization", auth);
+      for (const header of ["Authorization", "X-Guest-Access-Token", "X-Forwarded-For", "CF-Connecting-IP"]) {
+        const value = request.headers.get(header);
+        if (value) fetchHeaders.set(header, value);
+      }
 
       const metaReq = new Request(`${env.API_URL}/api/files/${fileId}/meta${url.search}`, {
         headers: fetchHeaders,
@@ -82,8 +84,8 @@ export default {
       return new Response(decryptedBuffer, {
         headers: {
           "Content-Type": contentType,
-          "Cache-Control": "public, max-age=31536000, immutable",
-          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "private, no-store, must-revalidate",
+          "X-Content-Type-Options": "nosniff",
         },
       });
     } catch (e: any) {

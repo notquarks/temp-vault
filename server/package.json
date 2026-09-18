@@ -1,7 +1,8 @@
 {
   "name": "server",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",

@@ -115,6 +115,9 @@ export const shares = sqliteTable("shares", {
     .notNull()
     .references(() => filelist.id, { onDelete: "cascade" }),
   key: text("key").notNull(),
+  capabilityHash: text("capability_hash"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
