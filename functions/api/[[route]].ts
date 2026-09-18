@@ -1,8 +1,7 @@
 import { Buffer } from "node:buffer";
 import { handle } from "hono/cloudflare-pages";
-import app from "../../server/src/app";
 
-export const onRequest = (context: any) => {
+export const onRequest = async (context: any) => {
   if (typeof globalThis.Buffer === "undefined") {
     globalThis.Buffer = Buffer;
   }
@@ -12,5 +11,6 @@ export const onRequest = (context: any) => {
     Object.assign(globalThis.process.env, context.env);
   }
 
+  const { default: app } = await import("../../server/src/app");
   return handle(app as any)(context);
 };
