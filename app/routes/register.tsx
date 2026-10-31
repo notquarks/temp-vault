@@ -3,7 +3,7 @@ import { RegisterScreen } from "../pages/auth/register_screen";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Arkivio // REGISTER" },
+    { title: "Arkivio | Create account" },
     { name: "description", content: "Create your Arkivio vault account." },
   ];
 }

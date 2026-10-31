@@ -1,0 +1,100 @@
+@theme static {
+  --color-basalt-canvas: #dfe5e2;
+  --color-ash-white: #f4f7f5;
+  --color-abyssal-ink: #08110e;
+  --color-pure-white: #ffffff;
+  --color-digital-orange: #006644;
+  --color-cyber-violet: #0b3b5b;
+  --color-pixel-glare: #d4f56e;
+
+  --color-paper: #dfe5e2;
+  --color-panel: #f4f7f5;
+  --color-panel-hover: #e6ece9;
+  --color-bone: #08110e;
+  --color-muted: #45524d;
+  --color-line: #c4cfca;
+  --color-line-strong: #08110e;
+  --color-accent: #006644;
+  --color-accent-ink: #ffffff;
+  --color-accent-hover: #004f35;
+  --color-danger: #b8261e;
+  --color-danger-strong: #8f1b15;
+  --color-safe: #006644;
+  --color-safe-strong: #004f35;
+  --color-info: #0b3b5b;
+  --color-info-strong: #07283e;
+  --color-warning: #8a5a00;
+  --color-shadow: #08110e;
+  --color-transparent: transparent;
+
+  --font-display:
+    "PP Neue Corp Compact Ultrabold", "Bebas Neue", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-pp-neue-corp-compact-ultrabold:
+    "PP Neue Corp Compact Ultrabold", "Bebas Neue", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-dm-sans: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+:root {
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.25;
+  --text-body: 16px;
+  --leading-body: 1.55;
+  --text-subheading: 28px;
+  --leading-subheading: 1.12;
+  --text-heading-sm: 32px;
+  --leading-heading-sm: 0.95;
+  --text-heading: 56px;
+  --leading-heading: 0.94;
+  --text-display: 80px;
+  --leading-display: 0.94;
+
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+
+  --page-max-width: 1200px;
+  --page-width: 1200px;
+  --page-gutter: 16px;
+  --section-gap: 40px;
+  --card-padding: 24px;
+  --element-gap: 12px;
+
+  --radius-cards: 40px;
+  --radius-cards-mobile: 28px;
+  --radius-inputs: 100px;
+  --radius-buttons: 800px;
+  --radius-default: 40px;
+  --radius-inner: 24px;
+
+  --ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-feedback: 140ms;
+  --shadow-overlay: 0 20px 48px
+    color-mix(in srgb, var(--color-shadow) 18%, var(--color-transparent));
+}
+
+@media (min-width: 640px) {
+  :root {
+    --page-gutter: 32px;
+    --card-padding: 40px;
+  }
+}
+
+@media (min-width: 1120px) {
+  :root {
+    --page-gutter: 40px;
+  }
+}

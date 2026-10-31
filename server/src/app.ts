@@ -28,9 +28,10 @@ app.use("/api/*", async (c, next) => {
   if (["POST", "PUT", "PATCH", "DELETE"].includes(c.req.method)) {
     const origin = c.req.header("origin");
     const fetchSite = c.req.header("sec-fetch-site");
+    const isAllowedOrigin = Boolean(origin && allowedOrigins.includes(origin));
     if (
-      (origin && !allowedOrigins.includes(origin)) ||
-      fetchSite === "cross-site"
+      (origin && !isAllowedOrigin) ||
+      (!isAllowedOrigin && fetchSite === "cross-site")
     ) {
       return c.json({ error: "Cross-site mutation rejected" }, 403);
     }

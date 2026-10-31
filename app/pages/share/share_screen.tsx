@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { ArrowUpRight, Download, Lock, Sailboat, Upload } from "lucide-react";
 import { download, UploadError } from "~/lib/api";
 import TextPreview from "~/components/text-preview";
 
@@ -38,15 +38,16 @@ export default function ShareScreen() {
           const body = await res.json().catch(() => null);
           throw new Error(
             body?.error
-              ? `// ${body.error.toUpperCase()}`
-              : "// SHARE LINK EXPIRED OR INVALID.",
+              ? body.error
+              : "This share link has expired or is invalid.",
           );
         }
         return res.json();
       })
       .then((data) => {
         const { fileId } = data;
-        if (!fileId) throw new Error("// NO FILE ATTACHED TO THIS SHARE.");
+        if (!fileId)
+          throw new Error("There is no file attached to this share link.");
 
         return download(fileId, {
           shareId,
@@ -64,9 +65,9 @@ export default function ShareScreen() {
       .catch((err) => {
         if (controller.signal.aborted || err?.name === "AbortError") return;
         if (err instanceof UploadError && err.status) {
-          setError(`// ERROR ${err.status}: ${err.message.toUpperCase()}`);
+          setError(`Error ${err.status}: ${err.message}`);
         } else {
-          setError(err.message || "FAILED TO LOAD SHARED FILE");
+          setError(err.message || "Unable to load this shared file.");
         }
       })
       .finally(() => {
@@ -94,108 +95,155 @@ export default function ShareScreen() {
   const isVideo = ["mp4", "webm", "ogg", "mov", "avi"].includes(ext);
 
   return (
-    <div className="flex min-h-dvh w-full flex-col bg-paper text-bone selection:bg-bone selection:text-paper">
-      <header className="animate-brutal flex h-14 shrink-0 items-center justify-between border-b-2 border-line px-5 sm:h-16 sm:px-6">
+    <div className="app-shell">
+      <header className="app-header">
+        <Link to="/" className="app-brand" aria-label="Arkivio home">
+          <Sailboat size={22} strokeWidth={2} aria-hidden="true" />
+          Arkivio
+        </Link>
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="font-syne text-[1.05rem] leading-none font-extrabold tracking-[0.13em] uppercase transition-opacity hover:opacity-70 sm:text-lg"
+          className="btn-hud-outline"
         >
-          ARKIVIO // SHARED
-        </button>
-        <button
-          type="button"
-          className="btn-hud-primary btn-hud-constructive min-h-[44px] px-5"
-          onClick={() => navigate("/login")}
-        >
-          Sign In
+          <Upload size={16} strokeWidth={2} aria-hidden="true" />
+          Upload
         </button>
       </header>
 
-      <main
-        className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-5 sm:p-8"
-        aria-live="polite"
-      >
+      <main className="app-main flex flex-1 flex-col">
         {loading && (
-          <span className="animate-brutal font-mono text-sm tracking-[0.16em] text-muted uppercase">
-            DECRYPTING...
-          </span>
+          <section
+            className="flex w-full min-w-0 flex-col gap-6"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div className="vault-card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex min-h-8 items-center gap-2 rounded-full bg-pixel-glare px-3.5 py-1 text-xs font-medium text-abyssal-ink">
+                    <Lock size={14} strokeWidth={2} aria-hidden="true" />
+                    AES-256
+                  </span>
+                  <h1 className="card-heading">Decrypting shared file</h1>
+                </div>
+                <div
+                  className="vault-skeleton h-4 w-64 max-w-full rounded-full"
+                  aria-hidden="true"
+                />
+              </div>
+              <div
+                className="flex flex-wrap items-center gap-3"
+                aria-hidden="true"
+              >
+                <div className="vault-skeleton h-12 w-36 rounded-full" />
+              </div>
+            </div>
+
+            <div className="vault-card flex min-h-80 w-full min-w-0 flex-col justify-between gap-6 sm:min-h-[440px]">
+              <div
+                className="vault-skeleton flex flex-1 flex-col items-center justify-center rounded-3xl p-6 text-center"
+                aria-hidden="true"
+              >
+                <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 rounded-3xl bg-ash-white px-6 py-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-paper text-bone">
+                    <Lock size={20} strokeWidth={2} />
+                  </div>
+                  <p className="text-sm font-medium text-bone">
+                    Verifying share link and decrypting payload…
+                  </p>
+                  <div className="vault-shimmer-bar h-2.5 w-48 rounded-full" />
+                </div>
+              </div>
+              <div
+                className="grid grid-cols-3 gap-3 sm:gap-4"
+                aria-hidden="true"
+              >
+                <div className="vault-skeleton h-3.5 rounded-full" />
+                <div className="vault-skeleton h-3.5 rounded-full" />
+                <div className="vault-skeleton h-3.5 rounded-full" />
+              </div>
+            </div>
+          </section>
         )}
 
-        {error && !loading && (
-          <div
-            role="alert"
-            className="bracket-frame shadow-brutal animate-brutal w-full max-w-xl border-2 border-line-strong bg-panel p-10 text-center"
-          >
-            <span className="bracket bracket-tl" aria-hidden="true" />
-            <span className="bracket bracket-tr" aria-hidden="true" />
-            <span className="bracket bracket-bl" aria-hidden="true" />
-            <span className="bracket bracket-br" aria-hidden="true" />
-            <p className="font-mono text-sm leading-relaxed tracking-wide break-words text-danger">
-              {error}
-            </p>
+        {error && (
+          <section className="vault-empty my-auto" role="alert">
+            <h1 className="page-heading">Link unavailable</h1>
+            <p className="text-base text-danger">{error}</p>
             <button
               type="button"
               onClick={() => navigate("/")}
-              className="btn-hud-outline btn-hud-info mt-6"
+              className="btn-hud-primary mt-2"
             >
-              Go Home
+              Open workbench
             </button>
-          </div>
+          </section>
         )}
 
         {blobUrl && !loading && !error && (
-          <div className="animate-brutal flex max-h-full max-w-full min-w-0 flex-col items-center gap-4 delay-1">
+          <section className="flex w-full min-w-0 flex-col gap-6">
+            <div className="vault-card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <h1 className="card-heading break-all sm:break-words">
+                  {name}
+                </h1>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <a href={blobUrl} download={name} className="btn-hud-primary">
+                  <Download size={16} strokeWidth={2} aria-hidden="true" />
+                  Download
+                </a>
+              </div>
+            </div>
+
             {textContent !== null && textLanguage ? (
               <TextPreview source={textContent} language={textLanguage} />
             ) : (
-              <div className="bracket-frame shadow-brutal max-w-full border-2 border-line-strong bg-panel p-3 sm:p-4">
-                <span className="bracket bracket-tl" aria-hidden="true" />
-                <span className="bracket bracket-tr" aria-hidden="true" />
-                <span className="bracket bracket-bl" aria-hidden="true" />
-                <span className="bracket bracket-br" aria-hidden="true" />
+              <div className="vault-card flex min-h-64 w-full min-w-0 items-center justify-center">
                 {isImage && (
                   <img
                     src={blobUrl}
                     alt={name}
-                    className="max-h-[calc(100dvh-16rem)] max-w-full object-contain"
+                    className="max-h-[65dvh] max-w-full rounded-3xl object-contain"
                   />
                 )}
                 {isVideo && (
                   <video
                     src={blobUrl}
                     controls
-                    className="max-h-[calc(100dvh-16rem)] max-w-full"
+                    aria-label={name}
+                    className="max-h-[65dvh] max-w-full rounded-3xl"
                   />
                 )}
                 {!isImage && !isVideo && (
-                  <div className="flex h-40 items-center justify-center px-8">
-                    <span className="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">
+                  <div className="max-w-sm py-8 text-center">
+                    <h2 className="card-heading">No inline preview</h2>
+                    <p className="mt-2 text-sm text-muted">
                       {isTextFile
-                        ? "TEXT PREVIEW UNAVAILABLE • DOWNLOAD TO OPEN"
-                        : "ENCRYPTED PAYLOAD • NO PREVIEW"}
-                    </span>
+                        ? "Download a copy to open this text file on your device."
+                        : "Download this file to open it locally."}
+                    </p>
                   </div>
                 )}
               </div>
             )}
-
-            <div className="max-w-full min-w-0 text-center">
-              <p className="mb-4 max-w-[90vw] truncate font-mono text-xs tracking-[0.08em] text-muted sm:text-sm">
-                {name}
-              </p>
-              <a
-                href={blobUrl}
-                download={name}
-                className="btn-hud-primary btn-hud-info"
-              >
-                <Download size={14} aria-hidden />
-                <span>&nbsp;Download</span>
-              </a>
-            </div>
-          </div>
+          </section>
         )}
       </main>
+
+      <footer className="app-footer">
+        <span>© 2026 Arkivio</span>
+        <a
+          href="https://github.com/notquarks/temp-vault"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+          <ArrowUpRight size={15} strokeWidth={2} aria-hidden="true" />
+        </a>
+      </footer>
     </div>
   );
 }

@@ -1,23 +1,23 @@
+import React, { useState } from "react";
 import { Eye, EyeClosed } from "lucide-react";
-import { useState, type ReactNode } from "react";
 
 interface CustomCheckboxProps {
   checked?: boolean;
   onChange?: (checked: boolean) => void;
   onClick?: () => void;
-  icon?: ReactNode;
-  uncheckedIcon?: ReactNode;
+  icon?: React.ReactNode;
+  uncheckedIcon?: React.ReactNode;
   className?: string;
 }
 
-const CustomCheckbox = ({
+const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
   checked: controlledChecked,
   onChange,
   onClick,
   icon = <Eye />,
   uncheckedIcon = <EyeClosed />,
   className = "",
-}: CustomCheckboxProps) => {
+}) => {
   const [internalChecked, setInternalChecked] = useState(false);
   const isChecked = controlledChecked ?? internalChecked;
 
@@ -30,7 +30,7 @@ const CustomCheckbox = ({
 
   return (
     <label
-      className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-bone ${className}`}
+      className={`flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-paper text-bone transition-colors hover:bg-panel-hover ${className}`}
     >
       <input
         type="checkbox"

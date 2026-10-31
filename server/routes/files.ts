@@ -37,13 +37,12 @@ function decodeBase64(value: string): Uint8Array | null {
 }
 
 async function canReadPrivateFile(c: any, file: typeof filelist.$inferSelect) {
+  if (file.private !== 1) return true;
   const shareId = c.req.header("x-share-id");
   const shareToken = c.req.header("x-share-token");
   if (shareId || shareToken) {
     return hasValidShareCapability(file.id, shareId, shareToken);
   }
-
-  if (file.private !== 1) return true;
   if (file.isGuest) {
     return safeHashEquals(
       file.guestAccessHash,
@@ -485,6 +484,11 @@ files.patch("/:id/privacy", async (c) => {
     await db
       .update(shares)
       .set({ revokedAt: now, updatedAt: now })
+      .where(eq(shares.fileId, fileId));
+  } else {
+    await db
+      .update(shares)
+      .set({ revokedAt: null, updatedAt: now })
       .where(eq(shares.fileId, fileId));
   }
   return c.json({ success: true, private: body.isPrivate });

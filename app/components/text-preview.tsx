@@ -74,8 +74,10 @@ function addSearchHighlights(
       cursor = end;
       match = normalizedValue.indexOf(normalizedQuery, cursor);
     }
-    if (cursor < value.length) fragment.append(value.slice(cursor));
-    textNode.replaceWith(fragment);
+    if (cursor < value.length) {
+      fragment.append(value.slice(cursor));
+    }
+    textNode.parentNode?.replaceChild(fragment, textNode);
   }
 
   return container.innerHTML;
@@ -140,114 +142,124 @@ export default function TextPreview({ source, language }: TextPreviewProps) {
   };
 
   return (
-    <div className="shadow-brutal w-full max-w-[min(90vw,1100px)] overflow-hidden border-2 border-line-strong bg-panel">
-      <div className="flex flex-wrap items-center gap-2 border-b-2 border-line px-3 py-2 sm:px-4">
-        <span className="mr-auto font-mono text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
-          Text preview
-        </span>
-        {!searchOpen ? (
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="btn-hud-outline btn-hud-info btn-hud-sm px-2"
-            aria-label="Search preview text"
-            title="Search preview text"
-          >
-            <Search size={14} aria-hidden />
-          </button>
-        ) : (
-          <>
-            <label className="relative flex min-w-[10rem] items-center sm:min-w-[14rem]">
-              <Search
-                size={13}
-                aria-hidden
-                className="pointer-events-none absolute left-2 text-muted"
-              />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  setActiveMatch(0);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    moveMatch(event.shiftKey ? -1 : 1);
-                  }
-                  if (event.key === "Escape") {
+    <div className="vault-card flex w-full min-w-0 flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="card-heading">Source</h2>
+          <span className="inline-flex min-h-8 items-center rounded-full bg-paper px-3 font-mono text-xs text-bone">
+            {language}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!searchOpen ? (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="btn-hud-outline btn-hud-sm"
+              aria-label="Open text search"
+              title="Search text"
+            >
+              <Search size={15} strokeWidth={2} aria-hidden />
+              <span>Search</span>
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex min-w-48 flex-1 items-center sm:w-64">
+                <Search
+                  size={15}
+                  strokeWidth={2}
+                  className="pointer-events-none absolute left-4 text-muted"
+                  aria-hidden
+                />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setActiveMatch(0);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      moveMatch(event.shiftKey ? -1 : 1);
+                    }
+                    if (event.key === "Escape") {
+                      setSearchQuery("");
+                      setActiveMatch(0);
+                      setSearchOpen(false);
+                    }
+                  }}
+                  placeholder="Search text"
+                  aria-label="Search preview text"
+                  className="min-h-11 w-full py-2 pr-11 pl-10 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
                     setSearchQuery("");
                     setActiveMatch(0);
                     setSearchOpen(false);
-                  }
-                }}
-                placeholder="Search text"
-                aria-label="Search preview text"
-                className="h-8 w-full border border-line-strong bg-paper pr-7 pl-7 font-mono text-[11px] text-bone outline-none placeholder:text-muted/70 focus:border-info"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setActiveMatch(0);
-                  setSearchOpen(false);
-                }}
-                className="absolute right-1 flex h-6 w-6 items-center justify-center text-muted transition-colors hover:text-bone"
-                aria-label="Close search"
-                title="Close search"
-              >
-                <X size={13} aria-hidden />
-              </button>
-            </label>
-            {searchQuery.trim() && (
+                  }}
+                  className="absolute right-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-paper hover:text-bone"
+                  aria-label="Close text search"
+                >
+                  <X size={15} strokeWidth={2} aria-hidden />
+                </button>
+              </div>
               <span
-                className="min-w-[3.5rem] text-center font-mono text-[10px] text-muted"
+                className="px-2 font-mono text-xs text-muted"
                 aria-live="polite"
               >
-                {`${matches.length ? activeIndex + 1 : 0}/${matches.length}`}
+                {searchQuery
+                  ? `${matches.length ? activeIndex + 1 : 0}/${matches.length}`
+                  : "0/0"}
               </span>
-            )}
-            <button
-              type="button"
-              onClick={() => moveMatch(-1)}
-              disabled={!matches.length}
-              className="btn-hud-outline btn-hud-info btn-hud-sm px-2"
-              aria-label="Previous match"
-              title="Previous match"
-            >
-              <ChevronUp size={14} aria-hidden />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveMatch(1)}
-              disabled={!matches.length}
-              className="btn-hud-outline btn-hud-info btn-hud-sm px-2"
-              aria-label="Next match"
-              title="Next match"
-            >
-              <ChevronDown size={14} aria-hidden />
-            </button>
-          </>
-        )}
-        <button
-          type="button"
-          onClick={copySource}
-          className="btn-hud-outline btn-hud-info btn-hud-sm"
-          title="Copy source text"
-        >
-          {copied ? (
-            <Check size={13} aria-hidden />
-          ) : (
-            <Clipboard size={13} aria-hidden />
+              <button
+                type="button"
+                onClick={() => moveMatch(-1)}
+                disabled={matches.length === 0}
+                className="btn-hud-outline btn-hud-sm px-3"
+                aria-label="Previous match"
+                title="Previous match"
+              >
+                <ChevronUp size={15} strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveMatch(1)}
+                disabled={matches.length === 0}
+                className="btn-hud-outline btn-hud-sm px-3"
+                aria-label="Next match"
+                title="Next match"
+              >
+                <ChevronDown size={15} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
           )}
-          <span>&nbsp;{copied ? "Copied" : "Copy text"}</span>
-        </button>
-        <span className="font-mono text-[10px] tracking-[0.16em] text-info uppercase">
-          {language}
-        </span>
+
+          <button
+            type="button"
+            onClick={copySource}
+            className="btn-hud-primary btn-hud-sm"
+            title="Copy source text"
+          >
+            {copied ? (
+              <Check size={15} strokeWidth={2} aria-hidden />
+            ) : (
+              <Clipboard size={15} strokeWidth={2} aria-hidden />
+            )}
+            <span aria-live="polite">{copied ? "Copied" : "Copy text"}</span>
+          </button>
+        </div>
       </div>
-      <pre className="code-preview max-h-[calc(100dvh-20rem)] overflow-auto p-4 text-left font-mono text-xs leading-relaxed sm:p-5 sm:text-sm">
+
+      <pre
+        tabIndex={0}
+        aria-label="File text content"
+        className="code-preview max-h-[60dvh] overflow-auto rounded-3xl bg-paper p-4 text-left font-mono text-xs leading-relaxed sm:p-6 sm:text-sm"
+      >
         <code
           ref={codeRef}
           dangerouslySetInnerHTML={{ __html: renderedSource }}

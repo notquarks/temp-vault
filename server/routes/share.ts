@@ -69,6 +69,11 @@ share.post("/create", async (c) => {
     updatedAt: now,
   });
 
+  await db
+    .update(filelist)
+    .set({ private: 0, updatedAt: now })
+    .where(eq(filelist.id, fileId));
+
   return c.json({ shareId, capability, expiresAt: expiresAt.toISOString() });
 });
 
@@ -81,17 +86,6 @@ share.get("/:id", async (c) => {
     .then((rows) => rows[0]);
 
   if (!shareRow) return c.json({ error: "Share not found" }, 404);
-  const capability = shareToken(c);
-  if (
-    !shareRow.capabilityHash ||
-    !capability ||
-    shareRow.revokedAt ||
-    !shareRow.expiresAt ||
-    shareRow.expiresAt <= new Date() ||
-    !(await hasValidShareCapability(shareRow.fileId, shareId, capability))
-  ) {
-    return c.json({ error: "Share link expired or revoked" }, 403);
-  }
 
   const fileRow = await db
     .select()
@@ -100,6 +94,23 @@ share.get("/:id", async (c) => {
     .then((rows) => rows[0]);
 
   if (!fileRow) return c.json({ error: "File not found" }, 404);
+
+  const capability = shareToken(c);
+  const isPublicFile =
+    fileRow.private !== 1 &&
+    !shareRow.revokedAt &&
+    Boolean(shareRow.expiresAt && shareRow.expiresAt > new Date());
+  if (
+    !isPublicFile &&
+    (!shareRow.capabilityHash ||
+      !capability ||
+      shareRow.revokedAt ||
+      !shareRow.expiresAt ||
+      shareRow.expiresAt <= new Date() ||
+      !(await hasValidShareCapability(shareRow.fileId, shareId, capability)))
+  ) {
+    return c.json({ error: "Share link expired or revoked" }, 403);
+  }
 
   return c.json({ fileId: shareRow.fileId });
 });

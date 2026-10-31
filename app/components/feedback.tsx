@@ -3,12 +3,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, Info, TriangleAlert, X } from "lucide-react";
+import { X } from "lucide-react";
 
 type ToastVariant = "success" | "error" | "info";
 
@@ -27,77 +27,76 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-let toastId = 0;
-
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    throw new Error("useToast must be used within a <ToastProvider>");
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return ctx;
 }
 
-function ToastSurface({ toasts, dismiss }: { toasts: ToastItem[]; dismiss: (id: number) => void }) {
+let toastId = 0;
+
+function ToastSurface({
+  toasts,
+  dismiss,
+}: {
+  toasts: ToastItem[];
+  dismiss: (id: number) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return createPortal(
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-[70] flex flex-col items-center gap-2 px-4"
+      aria-atomic="false"
+      className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:bottom-6"
     >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          role={t.variant === "error" ? "alert" : "status"}
-          className={`animate-brutal pointer-events-auto flex w-full max-w-sm items-start gap-3 border-2 bg-panel-hover px-4 py-3 shadow-brutal ${
-            t.variant === "error"
-              ? "border-danger-strong"
-              : t.variant === "success"
-              ? "border-safe-strong"
-              : "border-line-strong"
-          }`}
-        >
-          <span
-            className={`mt-0.5 shrink-0 ${
-              t.variant === "error"
-                ? "text-danger"
-                : t.variant === "success"
-                ? "text-safe"
-                : "text-bone"
-            }`}
+      {toasts.map((item) => {
+        const cardStyle =
+          item.variant === "error"
+            ? "bg-danger text-pure-white"
+            : item.variant === "success"
+              ? "bg-accent text-pure-white"
+              : "bg-panel text-bone border-2 border-bone";
+
+        return (
+          <div
+            key={item.id}
+            role={item.variant === "error" ? "alert" : "status"}
+            className={`pointer-events-auto flex items-start justify-between gap-3 rounded-3xl p-5 shadow-[var(--shadow-overlay)] ${cardStyle}`}
           >
-            {t.variant === "error" ? (
-              <TriangleAlert size={18} aria-hidden />
-            ) : t.variant === "info" ? (
-              <Info size={18} aria-hidden />
-            ) : (
-              <Check size={18} aria-hidden />
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-sm font-bold tracking-wider text-bone uppercase">
-              {t.title}
-            </p>
-            {t.message && (
-              <p className="mt-1 font-sans text-xs leading-snug text-muted">
-                {t.message}
-              </p>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-sans text-sm font-semibold">{item.title}</p>
+              {item.message && (
+                <p className="mt-1 font-sans text-xs break-words opacity-90">
+                  {item.message}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => dismiss(item.id)}
+              aria-label="Dismiss notification"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full opacity-85 hover:opacity-100"
+            >
+              <X size={16} strokeWidth={2} aria-hidden="true" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => dismiss(t.id)}
-            aria-label="Dismiss notification"
-            className="shrink-0 p-1 text-muted transition-colors hover:cursor-pointer hover:text-bone"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
-      ))}
+        );
+      })}
     </div>,
     document.body,
   );
 }
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const dismiss = useCallback((id: number) => {
@@ -135,59 +134,44 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 interface DialogChromeProps {
-  label: string;
   labelId: string;
   title: string;
   message: string;
-  markerClass: string;
+  onBackdrop: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  children: ReactNode;
-  onBackdropDismiss: () => void;
+  children: React.ReactNode;
 }
 
 function DialogChrome({
-  label,
   labelId,
   title,
   message,
-  markerClass,
+  onBackdrop,
   containerRef,
   children,
-  onBackdropDismiss,
 }: DialogChromeProps) {
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={labelId}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-paper/80 backdrop-blur-xs"
-        onClick={onBackdropDismiss}
+        className="fixed inset-0 bg-abyssal-ink/55"
+        onClick={onBackdrop}
         aria-hidden="true"
       />
       <div
         ref={containerRef}
-        className="bracket-frame relative z-10 w-full max-w-md border-2 border-line-strong bg-panel-hover p-6 shadow-brutal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        aria-describedby={`${labelId}-description`}
+        className="vault-card relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto shadow-[var(--shadow-overlay)]"
       >
-        <span className="bracket bracket-tl" aria-hidden="true" />
-        <span className="bracket bracket-tr" aria-hidden="true" />
-        <span className="bracket bracket-bl" aria-hidden="true" />
-        <span className="bracket bracket-br" aria-hidden="true" />
-        <div className="flex items-center justify-between border-b-2 border-line pb-3">
-          <span className="font-mono text-xs font-semibold tracking-wider text-bone uppercase">
-            {label}
-          </span>
-          <span className={`h-2 w-2 ${markerClass}`} aria-hidden="true" />
-        </div>
-        <h2
-          id={labelId}
-          className="font-syne mt-4 text-xl font-bold tracking-wide text-bone uppercase"
-        >
+        <h2 id={labelId} className="card-heading text-bone">
           {title}
         </h2>
-        <p className="mt-2 font-sans text-sm leading-relaxed text-muted">
+        <p
+          id={`${labelId}-description`}
+          className="mt-3 font-sans text-sm leading-6 break-words text-muted"
+        >
           {message}
         </p>
         {children}
@@ -218,9 +202,10 @@ function useDialogFocus(
         ),
       ).filter((el) => !el.hasAttribute("disabled") && el.tabIndex !== -1);
 
-    (focusFirstText
+    const initialFocus = focusFirstText
       ? focusables().find((el) => el.textContent?.trim() === focusFirstText)
-      : focusables()[0])?.focus() ?? focusables()[0]?.focus();
+      : focusables()[0];
+    (initialFocus ?? focusables()[0])?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -233,13 +218,10 @@ function useDialogFocus(
       if (list.length === 0) return;
       const first = list[0];
       const last = list[list.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey) {
-        if (active === first || !container.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last || !container.contains(active)) {
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
         e.preventDefault();
         first.focus();
       }
@@ -253,89 +235,103 @@ function useDialogFocus(
   }, [open, containerRef, focusFirstText]);
 }
 
-interface NoticeDialogProps {
-  open: boolean;
-  title: string;
-  message: string;
-  dismissLabel?: string;
-  onDismiss: () => void;
-}
-
-export function NoticeDialog({
+export function ConfirmDialog({
   open,
   title,
   message,
-  dismissLabel = "GOT IT",
-  onDismiss,
-}: NoticeDialogProps) {
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  destructive = false,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useDialogFocus(open, containerRef, onDismiss, dismissLabel);
+  const labelId = useId();
+  const [mounted, setMounted] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useDialogFocus(open, containerRef, onCancel, cancelLabel);
+
+  if (!mounted || !open) return null;
 
   return (
     <DialogChrome
-      label="[NOTICE"
-      labelId="notice-dialog-title"
+      labelId={labelId}
       title={title}
       message={message}
-      markerClass="bg-bone"
+      onBackdrop={onCancel}
       containerRef={containerRef}
-      onBackdropDismiss={onDismiss}
     >
-      <div className="mt-6 flex justify-end">
-        <button type="button" onClick={onDismiss} className="btn-hud-primary">
-          {dismissLabel}
+      <div className="mt-6 flex flex-wrap justify-end gap-3">
+        <button type="button" onClick={onCancel} className="btn-hud-outline">
+          {cancelLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={`btn-hud-primary ${
+            destructive ? "btn-hud-destructive" : "btn-hud-constructive"
+          }`}
+        >
+          {confirmLabel}
         </button>
       </div>
     </DialogChrome>
   );
 }
 
-interface ConfirmDialogProps {
-  open: boolean;
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  destructive?: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-export function ConfirmDialog({
+export function NoticeDialog({
   open,
   title,
   message,
-  confirmLabel = "CONFIRM",
-  destructive = false,
-  onConfirm,
-  onCancel,
-}: ConfirmDialogProps) {
+  dismissLabel = "OK",
+  onDismiss,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  dismissLabel?: string;
+  onDismiss: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useDialogFocus(open, containerRef, onCancel);
+  const labelId = useId();
+  const [mounted, setMounted] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useDialogFocus(open, containerRef, onDismiss);
+
+  if (!mounted || !open) return null;
 
   return (
     <DialogChrome
-      label="[CONFIRM"
-      labelId="confirm-dialog-title"
+      labelId={labelId}
       title={title}
       message={message}
-      markerClass={destructive ? "bg-danger-strong" : "bg-safe-strong"}
+      onBackdrop={onDismiss}
       containerRef={containerRef}
-      onBackdropDismiss={onCancel}
     >
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-        <button type="button" onClick={onCancel} className="btn-hud-outline">
-          CANCEL
-        </button>
+      <div className="mt-6 flex justify-end">
         <button
           type="button"
-          onClick={onConfirm}
-          className={destructive ? "btn-hud-outline btn-hud-destructive" : "btn-hud-primary"}
+          onClick={onDismiss}
+          className="btn-hud-primary btn-hud-info"
         >
-          {confirmLabel}
+          {dismissLabel}
         </button>
       </div>
     </DialogChrome>

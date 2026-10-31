@@ -5,10 +5,7 @@ import {
   encryptText,
   generateFileKey,
 } from "./crypto";
-import {
-  getTextPreviewLanguage,
-  MAX_TEXT_PREVIEW_BYTES,
-} from "./text-preview";
+import { getTextPreviewLanguage, MAX_TEXT_PREVIEW_BYTES } from "./text-preview";
 export interface UploadResult {
   fileId: string;
   fileName: string;
@@ -376,7 +373,8 @@ export async function download(
   try {
     const shareHeaders = new Headers(guestAccessHeaders(fileId));
     if (options?.shareId) shareHeaders.set("X-Share-Id", options.shareId);
-    if (options?.shareToken) shareHeaders.set("X-Share-Token", options.shareToken);
+    if (options?.shareToken)
+      shareHeaders.set("X-Share-Token", options.shareToken);
     const metaRes = await fetch(`/api/files/${fileId}/meta`, {
       signal: options?.signal,
       headers: shareHeaders,

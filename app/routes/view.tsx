@@ -3,7 +3,7 @@ import type { Route } from "./+types/view";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Arkivio // View" },
+    { title: "Arkivio | File" },
     { name: "description", content: "View a shared Arkivio file." },
   ];
 }

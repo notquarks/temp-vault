@@ -3,8 +3,11 @@ import HomeScreen from "~/pages";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Arkivio // Temp Storage" },
-    { name: "description", content: "Encrypted temporary file storage. Drop files, get shareable links — keys never leave your control." },
+    { title: "Arkivio" },
+    {
+      name: "description",
+      content: "Client-side encrypted file upload and sharing workbench.",
+    },
   ];
 }
 

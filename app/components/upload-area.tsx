@@ -1,5 +1,11 @@
 import { useRef, useState, useCallback, useId } from "react";
-import { Download, Eye } from "lucide-react";
+import {
+  Download,
+  Eye,
+  Link2,
+  Trash2,
+  Upload as UploadIcon,
+} from "lucide-react";
 import {
   AUTHENTICATED_MAX_FILE_SIZE,
   GUEST_MAX_FILE_SIZE,
@@ -59,12 +65,10 @@ export default function UploadArea({
   const maxFileSize = userId
     ? AUTHENTICATED_MAX_FILE_SIZE
     : GUEST_MAX_FILE_SIZE;
+  const maxFileSizeMB = Math.round(maxFileSize / (1024 * 1024));
   const maxFileCount = userId
     ? AUTHENTICATED_MAX_FILE_COUNT
     : GUEST_MAX_FILE_COUNT;
-  const uploadHint = userId
-    ? `MAX ${Math.round(maxFileSize / (1024 * 1024))} MB / FILE • ${maxFileCount}-FILE QUEUE`
-    : `MAX ${Math.round(maxFileSize / (1024 * 1024))} MB / FILE • 25 MB DAILY TOTAL`;
 
   const handleFilesAdded = useCallback(
     (newFiles: File[]) => {
@@ -94,19 +98,22 @@ export default function UploadArea({
       });
       setOverallStatus("queued");
     },
-    [maxFileCount, maxFileSize],
+    [maxFileSize, maxFileCount],
   );
 
-  const isUploading = overallStatus === "uploading";
-  const pending = queue.filter((q) => q.status === "pending").length;
+  const pending = queue.filter(
+    (q) => q.status === "pending" || q.status === "failed",
+  ).length;
   const uploadingCount = queue.filter((q) => q.status === "uploading").length;
   const doneCount = queue.filter((q) => q.status === "done").length;
+  const isUploading = overallStatus === "uploading";
 
   const startUploads = useCallback(async () => {
-    if (!queue.length || isUploading) return;
+    if (isUploading) return;
     setOverallStatus("uploading");
     const controller = new AbortController();
     abortRef.current = controller;
+
     const pendingList = queue.filter(
       (q) => q.status === "pending" || q.status === "failed",
     );
@@ -197,17 +204,18 @@ export default function UploadArea({
   );
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full min-w-0 flex-col gap-6 sm:gap-8">
       <NoticeDialog
         open={sizeWarning !== null}
         title="Limit exceeded"
         message={
           sizeWarning
-            ? `Excluded files larger than ${sizeWarning.limitMB} MB.`
+            ? `Excluded files larger than ${sizeWarning.limitMB} MB: ${sizeWarning.files.join(", ")}`
             : ""
         }
         onDismiss={() => setSizeWarning(null)}
       />
+
       <label
         htmlFor={inputId}
         onDragOver={(e) => {
@@ -221,7 +229,11 @@ export default function UploadArea({
           if (e.dataTransfer.files)
             handleFilesAdded(Array.from(e.dataTransfer.files));
         }}
-        className={`vault-shell shadow-brutal relative flex min-h-[300px] w-full cursor-pointer flex-col items-center justify-center border-2 bg-panel p-8 text-center transition-colors focus-within:border-bone sm:min-h-[340px] ${isDragOver ? "border-bone bg-panel-hover" : "border-line-strong hover:border-bone/60"}`}
+        className={`vault-card relative flex min-h-64 w-full cursor-pointer flex-col items-center justify-center border-2 text-center transition-colors focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-bone sm:min-h-72 ${
+          isDragOver
+            ? "border-accent bg-panel-hover"
+            : "border-line-strong hover:bg-panel-hover"
+        }`}
       >
         <input
           id={inputId}
@@ -233,33 +245,22 @@ export default function UploadArea({
               e.target.value = "";
             }
           }}
-          disabled={isUploading}
+          aria-describedby={`${inputId}-limits`}
           className="sr-only"
-        />
-        <span
-          className="animate-tick pointer-events-none absolute top-0 left-0 h-3 w-3 border-t-2 border-l-2 border-bone/40"
-          aria-hidden="true"
-        />
-        <span
-          className="animate-tick pointer-events-none absolute top-0 right-0 h-3 w-3 border-t-2 border-r-2 border-bone/40 delay-1"
-          aria-hidden="true"
-        />
-        <span
-          className="animate-tick pointer-events-none absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-bone/40 delay-2"
-          aria-hidden="true"
-        />
-        <span
-          className="animate-tick pointer-events-none absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-bone/40 delay-3"
-          aria-hidden="true"
+          disabled={isUploading}
         />
 
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-paper text-bone">
+          <UploadIcon size={26} strokeWidth={2} aria-hidden />
+        </div>
+
         {isUploading ? (
-          <div className="flex w-full max-w-[320px] flex-col items-center gap-3">
-            <span className="font-mono text-[11px] tracking-[0.16em] text-bone uppercase">
-              Uploading • {doneCount + uploadingCount} / {queue.length}
-            </span>
+          <div className="flex w-full max-w-md flex-col items-center gap-4">
+            <h1 className="page-heading">
+              Uploading {doneCount + uploadingCount} of {queue.length}
+            </h1>
             <div
-              className="h-2 w-full overflow-hidden border border-line-strong bg-paper"
+              className="h-3 w-full overflow-hidden rounded-full bg-paper"
               role="progressbar"
               aria-label="Overall upload progress"
               aria-valuemin={0}
@@ -267,100 +268,127 @@ export default function UploadArea({
               aria-valuenow={queueProgress}
             >
               <div
-                className="h-full bg-bone transition-all duration-200"
-                style={{ width: `${queueProgress}%` }}
+                className="h-full w-full origin-left bg-accent transition-transform duration-200 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${queueProgress / 100})` }}
               />
             </div>
           </div>
-        ) : isDragOver ? (
-          <span className="font-syne text-[2rem] leading-[0.9] font-extrabold tracking-[-0.03em] text-bone uppercase sm:text-[2.4rem]">
-            Release to ingest
-          </span>
         ) : (
-          <>
-            <span className="animate-brutal font-syne text-[2rem] leading-[0.9] font-extrabold tracking-[-0.04em] text-bone uppercase delay-2 sm:text-[2.6rem]">
-              Drop files here
+          <div className="flex flex-col items-center gap-3">
+            <h1 className="display-heading">Drop files here</h1>
+            <span className="btn-hud-primary mt-2">
+              <UploadIcon size={16} strokeWidth={2} aria-hidden />
+              Select files
             </span>
-            <span className="animate-brutal mt-3 font-mono text-[11px] tracking-[0.16em] text-muted uppercase delay-3">
-              or click to select from disk
-            </span>
-            <span className="animate-brutal mt-5 inline-flex border border-line-strong bg-paper px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-muted uppercase delay-3">
-              {uploadHint}
-            </span>
-          </>
+          </div>
         )}
       </label>
 
       {queue.length > 0 && (
-        <div className="shadow-brutal border-2 border-line-strong bg-panel">
-          <div className="flex items-center justify-between border-b-2 border-line px-4 py-3">
-            <span className="font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
-              Queue • {queue.length}
-            </span>
-            <button
-              type="button"
-              onClick={clearQueue}
-              className="-mr-2 px-3 py-2 font-mono text-[11px] tracking-wide text-muted uppercase transition-colors hover:text-bone"
-            >
-              Clear
-            </button>
+        <section
+          className="vault-card flex flex-col gap-6"
+          aria-label="Upload queue"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="card-heading">Queue</h2>
+              <span className="inline-flex min-h-8 items-center rounded-full bg-paper px-3 font-mono text-xs font-medium text-bone">
+                {queue.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={clearQueue}
+                disabled={isUploading}
+                className="btn-hud-outline btn-hud-sm"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={startUploads}
+                disabled={isUploading || pending === 0}
+                className="btn-hud-primary"
+              >
+                {isUploading
+                  ? "Uploading…"
+                  : pending
+                    ? `Upload (${pending})`
+                    : "Upload"}
+              </button>
+            </div>
           </div>
-          <ul className="divide-y divide-line">
+
+          <ul className="flex flex-col gap-3">
             {queue.map((item) => (
               <li
                 key={item.id}
-                className="flex items-center justify-between gap-4 px-4 py-3"
+                className="flex min-w-0 flex-col gap-4 rounded-3xl bg-paper p-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-sans text-[13px] font-semibold text-bone">
+                  <div className="font-sans text-base font-medium break-all text-bone sm:break-words">
                     {item.file.name}
                   </div>
-                  <div className="font-mono text-[11px] tracking-wide text-muted">
-                    {formatFileSize(item.file.size)} •{" "}
-                    <span
-                      className={
-                        item.status === "done"
-                          ? "text-safe"
-                          : item.status === "failed"
-                            ? "text-danger"
-                            : "text-muted"
-                      }
-                    >
-                      {item.status}
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span className="inline-flex items-center rounded-full bg-panel px-3 py-1 font-mono text-bone">
+                      {formatFileSize(item.file.size)}
                     </span>
+                    {item.status === "pending" && (
+                      <span className="inline-flex items-center rounded-full bg-panel px-3 py-1 font-medium text-muted">
+                        Ready
+                      </span>
+                    )}
+                    {item.status === "uploading" && (
+                      <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 font-mono font-medium text-pure-white">
+                        {item.progress}%
+                      </span>
+                    )}
+                    {item.status === "done" && (
+                      <span className="inline-flex items-center rounded-full bg-pixel-glare px-3 py-1 font-medium text-abyssal-ink">
+                        Uploaded
+                      </span>
+                    )}
+                    {item.status === "failed" && (
+                      <span className="inline-flex items-center rounded-full bg-danger px-3 py-1 font-medium break-words text-pure-white">
+                        {item.error || "Failed"}
+                      </span>
+                    )}
                   </div>
-                  {item.status === "uploading" && (
+
+                  {(item.status === "uploading" || item.status === "done") && (
                     <div
-                      className="mt-2 h-1 border border-line-strong bg-paper"
+                      className="mt-3 h-2 w-full overflow-hidden rounded-full bg-panel"
                       role="progressbar"
-                      aria-label={`Uploading ${item.file.name}`}
+                      aria-label={`Upload progress for ${item.file.name}`}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuenow={item.progress}
+                      aria-valuenow={
+                        item.status === "done" ? 100 : item.progress
+                      }
                     >
                       <div
-                        className="h-full bg-bone transition-all"
-                        style={{ width: `${item.progress}%` }}
+                        className="h-full w-full origin-left bg-accent transition-transform duration-200 motion-reduce:transition-none"
+                        style={{
+                          transform: `scaleX(${
+                            (item.status === "done" ? 100 : item.progress) / 100
+                          })`,
+                        }}
                       />
                     </div>
                   )}
-                  {item.error && (
-                    <div className="mt-1 font-mono text-[11px] text-danger">
-                      {item.error}
-                    </div>
-                  )}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+
+                <div className="flex flex-wrap items-center gap-2">
                   {item.status === "done" && item.serverFileId && (
                     <>
                       <button
                         type="button"
                         onClick={() => onView?.(item.serverFileId!)}
-                        className="btn-hud-outline btn-hud-info btn-hud-sm"
-                        aria-label={`View ${item.file.name}`}
+                        className="btn-hud-outline btn-hud-sm"
                       >
-                        <Eye size={12} aria-hidden />
-                        <span className="hidden sm:inline">&nbsp;View</span>
+                        <Eye size={15} aria-hidden />
+                        View
                       </button>
                       <button
                         type="button"
@@ -369,11 +397,10 @@ export default function UploadArea({
                             ? onDownload(item.serverFileId!)
                             : downloadFile(item.serverFileId!)
                         }
-                        className="btn-hud-outline btn-hud-info btn-hud-sm"
-                        aria-label={`Download ${item.file.name}`}
+                        className="btn-hud-outline btn-hud-sm"
                       >
-                        <Download size={12} aria-hidden />
-                        <span className="hidden sm:inline">&nbsp;Download</span>
+                        <Download size={15} aria-hidden />
+                        Download
                       </button>
                     </>
                   )}
@@ -381,8 +408,9 @@ export default function UploadArea({
                     <button
                       type="button"
                       onClick={() => copyLink(item)}
-                      className="btn-hud-outline btn-hud-info btn-hud-sm"
+                      className="btn-hud-primary btn-hud-sm"
                     >
+                      <Link2 size={15} aria-hidden />
                       Copy link
                     </button>
                   )}
@@ -390,7 +418,7 @@ export default function UploadArea({
                     <button
                       type="button"
                       onClick={() => onNeedAccount?.()}
-                      className="btn-hud-outline btn-hud-info btn-hud-sm"
+                      className="btn-hud-outline btn-hud-sm"
                       title="Create an account to share files"
                     >
                       Sign in to share
@@ -400,8 +428,10 @@ export default function UploadArea({
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="btn-hud-outline btn-hud-destructive"
+                      aria-label={`Remove ${item.file.name} from queue`}
+                      className="btn-hud-outline btn-hud-destructive btn-hud-sm"
                     >
+                      <Trash2 size={15} aria-hidden />
                       Remove
                     </button>
                   )}
@@ -409,22 +439,48 @@ export default function UploadArea({
               </li>
             ))}
           </ul>
-          <div className="flex justify-end border-t-2 border-line p-3">
-            <button
-              type="button"
-              onClick={startUploads}
-              disabled={isUploading || pending === 0}
-              className="btn-hud-primary btn-hud-constructive w-full disabled:opacity-35 sm:w-auto"
-            >
-              {isUploading
-                ? "Uploading…"
-                : pending
-                  ? `Upload (${pending})`
-                  : "Upload"}
-            </button>
+        </section>
+      )}
+
+      <div
+        id={`${inputId}-limits`}
+        className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6"
+      >
+        <div className="vault-card-accent flex flex-col justify-between gap-2">
+          <div className="stat-number">
+            {queue.length > 0
+              ? `${doneCount}/${queue.length}`
+              : `${maxFileSizeMB} MB`}
+          </div>
+          <div className="text-sm font-medium">
+            {queue.length > 0
+              ? isUploading
+                ? `Uploading (${queueProgress}%)`
+                : "Completed in queue"
+              : "Per-file limit"}
           </div>
         </div>
-      )}
+
+        <div className="vault-card flex flex-col justify-between gap-2">
+          <div className="stat-number">
+            {queue.length > 0 ? `${pending}` : `${maxFileCount} files`}
+          </div>
+          <div className="text-sm font-medium text-muted">
+            {queue.length > 0
+              ? "Ready to upload"
+              : userId
+                ? "Batch limit (signed in)"
+                : "Batch limit (25 MB daily cap)"}
+          </div>
+        </div>
+
+        <div className="vault-card flex flex-col justify-between gap-2">
+          <div className="stat-number">AES-256</div>
+          <div className="text-sm font-medium text-muted">
+            {userId ? "Encrypted vault storage" : "Encrypted guest session"}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
